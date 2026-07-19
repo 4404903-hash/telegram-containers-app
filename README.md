@@ -1,1 +1,2 @@
-# telegram-containers-app
+# ContainerGame
+Open index.html or host on GitHub Pages.
