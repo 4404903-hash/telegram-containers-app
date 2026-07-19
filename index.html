@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контейнери Mini App</title>
+    <!-- Підключаємо офіційний скрипт Telegram SDK -->
+    <script src="https://telegram.org"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff); /* Авто-колір фону */
+            color: var(--tg-theme-text-color, #000000);        /* Авто-колір тексту */
+            text-align: center;
+            padding: 20px;
+        }
+        .btn {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎁 Відкриття Контейнерів</h1>
+    <p>Вітаємо, <span id="username">Гравець</span>!</p>
+    
+    <button class="btn" id="openBtn">ВІДКРИТИ КОНТЕЙНЕР 📦</button>
+
+    <script>
+        // Ініціалізуємо додаток Telegram всередині браузера
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Розгортаємо вікно на весь екран смартфона
+
+        // Отримуємо ім'я користувача з Telegram і виводимо на екран
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            document.getElementById('username').innerText = tg.initDataUnsafe.user.first_name;
+        }
+
+        // Обробка натискання на кнопку
+        document.getElementById('openBtn').addEventListener('click', () => {
+            // Генеруємо результат безпосередньо у JS (для прикладу)
+            const containerNum = Math.floor(Math.random() * 100) + 1;
+            const isWin = Math.random() < 0.05; // 5% шанс
+
+            let message = `Відкрито контейнер №${containerNum}\n`;
+            message += isWin ? "🎉 Ви виграли приз!" : "😔 Без виграшу.";
+
+            // Надсилаємо дані назад у чат з ботом
+            tg.sendData(message); 
+            tg.close(); // Автоматично закриваємо Mini App після кліку
+        });
+    </script>
+</body>
+</html>
