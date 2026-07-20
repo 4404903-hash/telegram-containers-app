@@ -208,6 +208,6 @@ io.on("connection", socket => {
 });
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("/{*splat}", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 server.listen(PORT, () => console.log(`AutoBazar: http://localhost:${PORT}`));
