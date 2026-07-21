@@ -2,9 +2,9 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>AutoBazar Game</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=20260721-2">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -14,6 +14,7 @@
     <p class="eyebrow">TELEGRAM MINI APP</p>
     <h1>AutoBazar</h1>
     <p>Онлайн-автобазар у вигляді гри</p>
+    <small class="version-badge">Версія 2.1</small>
     <button id="buyBtn" class="primary">Купити машину</button>
     <button id="sellBtn" class="secondary">Продати машину</button>
   </section>
@@ -43,9 +44,11 @@
       <div id="grid" class="grid"></div>
       <div id="player" class="player"><span>🧍</span><small id="playerName">Я</small></div>
     </div>
-    <div class="controls">
-      <button data-move="up">▲</button>
-      <div><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button></div>
+    <div class="joystick-wrap" aria-label="Керування персонажем">
+      <div id="joystickBase" class="joystick-base">
+        <div id="joystickStick" class="joystick-stick"></div>
+      </div>
+      <small>Рух</small>
     </div>
   </section>
 
@@ -77,6 +80,6 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=20260721-2"></script>
 </body>
 </html>
