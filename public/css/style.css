@@ -27,9 +27,12 @@ button,.world,.joystick-base{touch-action:none;-webkit-user-select:none;user-sel
 .car.nearby{filter:drop-shadow(0 0 7px var(--green));transform:scale(1.06);outline:2px solid var(--green);outline-offset:3px;border-radius:10px}
 .car.too-far{animation:car-shake .4s ease}
 @keyframes car-shake{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-3px)}}
-.joystick-wrap{position:fixed;z-index:8;left:22px;bottom:max(20px,env(safe-area-inset-bottom));display:grid;justify-items:center;gap:5px;color:var(--muted);font-weight:700}
-.joystick-base{width:118px;height:118px;border-radius:50%;background:#111923cc;border:2px solid #6d7d8e;box-shadow:inset 0 0 0 12px #ffffff08;display:grid;place-items:center}
-.joystick-stick{width:54px;height:54px;border-radius:50%;background:var(--green);border:3px solid #b9f2ce;box-shadow:0 5px 16px #0008;will-change:transform}
-@media(max-width:600px){.joystick-base{width:104px;height:104px}.joystick-stick{width:48px;height:48px}.joystick-wrap{left:16px}}
+.joystick-wrap{position:fixed;z-index:8;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);display:grid;justify-items:center;color:var(--muted);font-weight:700;pointer-events:none}
+.joystick-wrap>small{display:none}
+.joystick-base{pointer-events:auto;width:126px;height:126px;border-radius:50%;background:rgba(17,25,35,.48);border:2px solid rgba(255,255,255,.28);box-shadow:inset 0 0 0 11px rgba(255,255,255,.035),0 8px 24px rgba(0,0,0,.32);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:grid;place-items:center;transition:transform .12s ease,border-color .12s ease}
+.joystick-base:active{transform:scale(.97);border-color:rgba(73,209,126,.8)}
+.joystick-stick{width:58px;height:58px;border-radius:50%;background:rgba(73,209,126,.88);border:3px solid rgba(210,255,226,.85);box-shadow:inset 0 0 0 5px rgba(255,255,255,.08),0 6px 18px rgba(0,0,0,.45);will-change:transform;transition:box-shadow .12s ease}
+.joystick-base:active .joystick-stick{box-shadow:inset 0 0 0 5px rgba(255,255,255,.12),0 8px 22px rgba(0,0,0,.5)}
+@media(max-width:600px){.joystick-base{width:112px;height:112px}.joystick-stick{width:52px;height:52px}.joystick-wrap{left:50%;bottom:max(18px,env(safe-area-inset-bottom))}}
 
 .version-badge{display:inline-block;margin:0 0 14px;padding:5px 9px;border:1px solid var(--muted);border-radius:999px;color:var(--muted);font-size:12px}
