@@ -36,23 +36,3 @@ button,.world,.joystick-base{touch-action:none;-webkit-user-select:none;user-sel
 @media(max-width:600px){.joystick-base{width:112px;height:112px}.joystick-stick{width:52px;height:52px}.joystick-wrap{left:50%;bottom:max(18px,env(safe-area-inset-bottom))}}
 
 .version-badge{display:inline-block;margin:0 0 14px;padding:5px 9px;border:1px solid var(--muted);border-radius:999px;color:var(--muted);font-size:12px}
-
-
-/* Character running animation */
-.player{will-change:left,top,transform}
-.player span{display:inline-block;transform-origin:50% 90%;will-change:transform}
-.player.running span{animation:player-run .24s steps(2,end) infinite}
-.player.face-left span{transform:scaleX(-1)}
-.player.running.face-left span{animation:player-run-left .24s steps(2,end) infinite}
-.player.running small{animation:player-name-bob .24s ease-in-out infinite alternate}
-@keyframes player-run{
-  0%{transform:translateY(0) rotate(-5deg) scaleX(1)}
-  50%{transform:translateY(-5px) rotate(6deg) scaleX(1)}
-  100%{transform:translateY(0) rotate(-5deg) scaleX(1)}
-}
-@keyframes player-run-left{
-  0%{transform:translateY(0) rotate(5deg) scaleX(-1)}
-  50%{transform:translateY(-5px) rotate(-6deg) scaleX(-1)}
-  100%{transform:translateY(0) rotate(5deg) scaleX(-1)}
-}
-@keyframes player-name-bob{from{transform:translateY(0)}to{transform:translateY(-2px)}}
