@@ -13,6 +13,7 @@ const INTERACTION_RADIUS = 125;
 let user=null, currentZone=1, mode="buy", listings=[], messages=[], selected=null;
 let pos={x:50,y:50};
 let joystickFrame=null;
+let runStopTimer=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
 function show(id){$$('.screen').forEach(x=>x.classList.toggle('active',x.id===id))}
@@ -108,12 +109,30 @@ $('#messageForm').onsubmit=e=>{e.preventDefault();if(selected)socket.emit('messa
 $('#removeBtn').onclick=()=>{if(selected){socket.emit('listing:remove',selected.id);closeModal();toast('Оголошення знято')}};
 $$('.close-modal').forEach(x=>x.onclick=closeModal);$('#inboxBtn').onclick=()=>{renderMessages();show('inboxScreen')};$('#backMarket').onclick=()=>show('marketScreen');
 
+function setRunning(dx=0,dy=0){
+  const player=$('#player'),icon=player?.querySelector('span');
+  if(!player||!icon)return;
+  player.classList.add('running');
+  icon.textContent='🏃';
+  if(dx<-.02)player.classList.add('face-left');
+  if(dx>.02)player.classList.remove('face-left');
+  clearTimeout(runStopTimer);
+  runStopTimer=setTimeout(stopRunning,140);
+}
+function stopRunning(){
+  const player=$('#player'),icon=player?.querySelector('span');
+  if(!player||!icon)return;
+  player.classList.remove('running');
+  icon.textContent='🧍';
+}
 function move(dx,dy){
   pos.x=Math.max(3,Math.min(97,pos.x+dx));pos.y=Math.max(4,Math.min(94,pos.y+dy));
   $('#player').style.left=pos.x+'%';$('#player').style.top=pos.y+'%';
+  if(Math.abs(dx)+Math.abs(dy)>.01)setRunning(dx,dy);
   updateNearbyCars();
 }
 window.onkeydown=e=>{const k={ArrowUp:[0,-2],w:[0,-2],ArrowDown:[0,2],s:[0,2],ArrowLeft:[-2,0],a:[-2,0],ArrowRight:[2,0],d:[2,0]};if(k[e.key]){e.preventDefault();move(...k[e.key])}};
+window.addEventListener('keyup',stopRunning);
 
 const base=$('#joystickBase'),stick=$('#joystickStick');
 let joy={active:false,x:0,y:0,pointerId:null};
@@ -135,6 +154,7 @@ function stopJoystick(){
   joy.active=false;joy.x=0;joy.y=0;joy.pointerId=null;
   stick.style.transform='translate(0,0)';
   if(joystickFrame)cancelAnimationFrame(joystickFrame);
+  stopRunning();
 }
 base.addEventListener('pointerdown',e=>{
   e.preventDefault();joy.active=true;joy.pointerId=e.pointerId;base.setPointerCapture(e.pointerId);updateJoystick(e);joystickLoop();
