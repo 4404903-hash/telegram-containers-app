@@ -8,23 +8,4 @@
 @keyframes shake{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-3px)}}@keyframes run{to{transform:translateY(-5px) rotate(4deg)}}@keyframes leg1{to{transform:rotate(22deg)}}@keyframes leg2{to{transform:rotate(-22deg)}}
 @media(max-width:700px){.zone-map{display:none}.tabs{display:flex}.world{height:560px;border-radius:0;border-left:0;border-right:0}.grid{gap:13px 20px}.car-sprite{width:45px;height:27px}.car-info{font-size:7px}.joystick-base{width:112px;height:112px}.joystick-stick{width:52px;height:52px}.chat-layout{grid-template-columns:1fr}.chat-panel{position:fixed;inset:68px 0 0;background:#101c25;z-index:5}.chat-empty{display:none}.chat-panel:has(#chatActive.hidden){display:none}.chat-head button{display:block}.conversation{padding:14px 8px}.chat-compose{grid-template-columns:1fr 92px}.chat-compose .primary{padding:10px;font-size:12px}}
 
-
-/* v3.1 improvements */
-.spot-number{
- position:absolute!important;
- inset:0!important;
- display:flex!important;
- align-items:center!important;
- justify-content:center!important;
- font-size:56px!important;
- font-weight:900!important;
- color:#fff!important;
- opacity:.18!important;
- pointer-events:none!important;
- z-index:0!important;
-}
-.car-info{
- font-size:16px!important;
- font-weight:800!important;
-}
-.car-info .extra,.car-price,.car-year,.price,.year{display:none!important;}
+.car-info{font-size:16px!important;font-weight:800!important}
