@@ -76,6 +76,7 @@ function validateTelegramInitData(initData) {
 }
 
 const onlineUsers = new Map();
+const onlinePlayers = new Map();
 
 function publicListings() {
   return store.listings.filter(x => x.status === "active").map(x => ({
@@ -84,8 +85,21 @@ function publicListings() {
   }));
 }
 
+function publicPlayers() {
+  return [...onlinePlayers.values()].map(p => ({
+    id: p.id,
+    name: p.name,
+    zone: p.zone,
+    x: p.x,
+    y: p.y,
+    moving: Boolean(p.moving),
+    faceLeft: Boolean(p.faceLeft)
+  }));
+}
+
 function emitWorld() {
   io.emit("world:listings", publicListings());
+  io.emit("world:players", publicPlayers());
 }
 
 io.on("connection", socket => {
@@ -111,6 +125,16 @@ io.on("connection", socket => {
     }
 
     onlineUsers.set(user.id, socket.id);
+    onlinePlayers.set(user.id, {
+      id: user.id,
+      name: user.name,
+      zone: 1,
+      x: 50,
+      y: 50,
+      moving: false,
+      faceLeft: false,
+      socketId: socket.id
+    });
     socket.join(`user:${user.id}`);
 
     socket.emit("auth:ok", {
@@ -118,9 +142,39 @@ io.on("connection", socket => {
       listings: publicListings(),
       messages: store.messages.filter(m =>
         String(m.toUserId) === user.id || String(m.fromUserId) === user.id
-      )
+      ),
+      players: publicPlayers()
     });
     emitWorld();
+  });
+
+
+  socket.on("player:update", payload => {
+    if (!user) return;
+    const player = onlinePlayers.get(user.id);
+    if (!player) return;
+
+    const zone = Number(payload?.zone);
+    const x = Number(payload?.x);
+    const y = Number(payload?.y);
+    if (!Number.isInteger(zone) || zone < 1 || zone > 5) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+    player.zone = zone;
+    player.x = Math.max(0, Math.min(100, x));
+    player.y = Math.max(0, Math.min(100, y));
+    player.moving = Boolean(payload?.moving);
+    player.faceLeft = Boolean(payload?.faceLeft);
+
+    socket.broadcast.emit("player:updated", {
+      id: player.id,
+      name: player.name,
+      zone: player.zone,
+      x: player.x,
+      y: player.y,
+      moving: player.moving,
+      faceLeft: player.faceLeft
+    });
   });
 
   socket.on("listing:create", payload => {
@@ -210,6 +264,8 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     if (user && onlineUsers.get(user.id) === socket.id) {
       onlineUsers.delete(user.id);
+      onlinePlayers.delete(user.id);
+      socket.broadcast.emit("player:left", { id: user.id });
       emitWorld();
     }
   });

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>AutoBazar Game</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260721-2">
+  <link rel="stylesheet" href="/css/style.css?v=20260721-4">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -14,7 +14,7 @@
     <p class="eyebrow">TELEGRAM MINI APP</p>
     <h1>AutoBazar</h1>
     <p>Онлайн-автобазар у вигляді гри</p>
-    <small class="version-badge">Версія 2.2</small>
+    <small class="version-badge">Версія 2.4</small>
     <button id="buyBtn" class="primary">Купити машину</button>
     <button id="sellBtn" class="secondary">Продати машину</button>
   </section>
@@ -42,6 +42,7 @@
     <div id="world" class="world">
       <div class="road v"></div><div class="road h"></div>
       <div id="grid" class="grid"></div>
+      <div id="remotePlayers" class="remote-players"></div>
       <div id="player" class="player"><span>🧍</span><small id="playerName">Я</small></div>
     </div>
     <div class="joystick-wrap" aria-label="Керування персонажем">
@@ -80,6 +81,6 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="/js/app.js?v=20260721-2"></script>
+  <script type="module" src="/js/app.js?v=20260721-4"></script>
 </body>
 </html>
