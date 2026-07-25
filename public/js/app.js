@@ -72,9 +72,16 @@ socket.on('auth:ok',d=>{
   const headerRating=$('#headerRating');
   if(headerRating)headerRating.textContent=Number(own?.sellerRating||0).toFixed(1);
 
-  render();
-  emitPlayerUpdate(false);
-  setTimeout(()=>show('marketScreen'),900);
+  show('marketScreen');
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    updateCamera();
+    updateNearbyCars();
+  });
+});
+
+emitPlayerUpdate(false);
 });
 socket.on('auth:error',toast);socket.on('listing:error',toast);
 socket.on('vip:purchase-required',d=>{pendingSale=d?.payload||pendingSale;$('#vipModal').classList.remove('hidden')});
