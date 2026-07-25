@@ -1,9 +1,80 @@
-<!doctype html><html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>AutoBazar Game</title><link rel="stylesheet" href="/css/style.css?v=20260721-32"><script src="https://telegram.org/js/telegram-web-app.js"></script><script src="/socket.io/socket.io.js"></script></head><body>
-<section id="startScreen" class="screen active start"><div class="logo-car"><i></i><b></b></div><p class="eyebrow">TELEGRAM MINI APP</p><h1>AutoBazar</h1><p>Живий онлайн-автобазар у форматі 2D-гри</p><small class="version-badge">Версія 3.2</small><button id="buyBtn" class="primary">Увійти на автобазар</button><button id="sellBtn" class="secondary">Продати машину</button></section>
-<section id="sellScreen" class="screen"><header><button class="back">←</button><h2>Продати машину</h2></header><form id="sellForm" class="panel"><input name="brand" placeholder="Марка: BMW" required><input name="model" placeholder="Модель: X5" required><input name="year" type="number" min="1950" max="2030" placeholder="Рік" required><input name="price" type="number" min="1" placeholder="Ціна, $" required><textarea name="description" maxlength="700" placeholder="Опис машини"></textarea><div id="zoneHint">Площадка визначиться за ціною</div><button class="primary" type="submit">Виставити машину</button></form></section>
-<section id="marketScreen" class="screen"><header class="market-header"><button id="exitMarket">←</button><div><small id="modeText"></small><strong id="zoneTitle"></strong></div><button id="inboxBtn" class="inbox-button">💬<b id="badge" class="hidden">0</b></button></header>
-<div id="zoneMap" class="zone-map"></div><div id="tabs" class="tabs"></div>
-<div id="world" class="world"><div class="texture"></div><div class="road v"></div><div class="road h"></div><div class="road-line vline"></div><div class="road-line hline"></div><div class="trees"><i></i><i></i><i></i><i></i><i></i><i></i></div><div id="grid" class="grid"></div><div id="remotePlayers" class="remote-players"></div><div id="player" class="player"><span class="person-sprite"><i></i><b></b></span><small id="playerName">Я</small></div></div>
-<div class="joystick-wrap"><div id="joystickBase" class="joystick-base"><div id="joystickStick" class="joystick-stick"></div></div></div></section>
-<section id="inboxScreen" class="screen"><header><button id="backMarket">←</button><h2>Чати</h2></header><div class="chat-layout"><aside id="conversations" class="conversations"></aside><main id="chatPanel" class="chat-panel"><div id="chatEmpty" class="chat-empty">Оберіть діалог</div><div id="chatActive" class="hidden"><div class="chat-head"><button id="closeChat">←</button><div><b id="chatName"></b><small id="chatCar"></small></div></div><div id="chatMessages" class="chat-messages"></div><div class="chat-compose"><textarea id="chatText" maxlength="700" placeholder="Напишіть повідомлення..."></textarea><button id="sendChat" class="primary">Надіслати</button></div></div></main></div></section>
-<div id="modal" class="modal hidden"><div class="backdrop close-modal"></div><article><button class="close close-modal">×</button><div class="showcase-car"><i></i><b></b></div><p id="mZone" class="eyebrow"></p><h2 id="mTitle"></h2><div class="details"><span>Рік<b id="mYear"></b></span><span>Ціна<b id="mPrice"></b></span><span>Продавець<b id="mSeller"></b></span><span>Статус<b id="mStatus"></b></span></div><p id="mDescription"></p><button id="openChatBtn" class="primary">Написати продавцю</button><button id="removeBtn" class="danger hidden">Зняти оголошення</button></article></div><div id="toast" class="toast hidden"></div><script type="module" src="/js/app.js?v=20260721-32"></script></body></html>
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>AutoBazar Game</title>
+  <link rel="stylesheet" href="/css/style.css?v=20260725-40">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <section id="loadingScreen" class="screen active loading-screen">
+    <div class="loading-art">
+      <div class="market-sign">AUTObazar</div>
+      <div class="hero-car car-3d color-red"><i></i><b></b><span></span></div>
+      <div class="loading-road"></div>
+    </div>
+    <h1>AutoBazar</h1>
+    <p>Завантажуємо живий автобазар…</p>
+    <div class="loader"><i></i></div>
+  </section>
+
+  <section id="marketScreen" class="screen game-screen">
+    <header class="market-header">
+      <button id="menuBtn" aria-label="Меню">☰</button>
+      <div><small>Єдиний автобазар</small><strong>100 паркомісць</strong></div>
+      <div class="header-actions">
+        <button id="crystalBtn" class="crystal-button">💎 <b id="crystalCount">0</b></button>
+        <button id="inboxBtn" class="inbox-button">💬<b id="badge" class="hidden">0</b></button>
+      </div>
+    </header>
+
+    <div id="camera" class="camera">
+      <div id="world" class="world">
+        <div class="grass-texture"></div>
+        <div class="road road-v"></div><div class="road road-h"></div>
+        <div class="road-mark road-mark-v"></div><div class="road-mark road-mark-h"></div>
+        <div id="slotLayer" class="slot-layer"></div>
+        <button id="office" class="office" type="button">
+          <span class="office-roof"></span><span class="office-door"></span><span class="office-window left"></span><span class="office-window right"></span>
+          <b>ОФІС</b><small>Продаж авто · Розробник</small>
+        </button>
+        <div id="remotePlayers" class="remote-players"></div>
+        <div id="player" class="player"><span class="person-sprite"><i></i><b></b></span><small id="playerName">Я</small></div>
+      </div>
+    </div>
+
+    <div class="map-help">Підійдіть до офісу або автомобіля</div>
+    <div class="joystick-wrap"><div id="joystickBase" class="joystick-base"><div id="joystickStick" class="joystick-stick"></div></div></div>
+  </section>
+
+  <aside id="gameMenu" class="side-menu hidden">
+    <div class="side-backdrop" data-close-menu></div>
+    <div class="side-panel"><button class="side-close" data-close-menu>×</button><h2>AutoBazar</h2><button id="menuSell">🚘 Продати машину</button><button id="menuDeveloper">✉️ Написати розробнику</button><button id="menuChats">💬 Мої чати</button></div>
+  </aside>
+
+  <section id="sellScreen" class="screen overlay-screen">
+    <header><button class="back-market">←</button><div><small>Офіс AutoBazar</small><h2>Продати машину</h2></div></header>
+    <form id="sellForm" class="sell-wizard">
+      <div class="step-indicator"><i class="active">1</i><span></span><i>2</i><span></span><i>3</i></div>
+      <section class="wizard-step active" data-step="1"><p class="eyebrow">КРОК 1 З 3</p><h3>Яке авто продаєте?</h3><label>Марка<input name="brand" placeholder="Наприклад, BMW" maxlength="30" required></label><label>Модель<input name="model" placeholder="Наприклад, X5" maxlength="30" required></label><button type="button" class="primary next-step">Далі</button></section>
+      <section class="wizard-step" data-step="2"><p class="eyebrow">КРОК 2 З 3</p><h3>Основні характеристики</h3><label>Рік<input name="year" type="number" min="1950" max="2030" placeholder="2020" required></label><label>Ціна, $<input name="price" type="number" min="1" placeholder="25000" required></label><fieldset><legend>Колір</legend><div class="color-picker">
+        <label><input type="radio" name="color" value="black" checked><span class="swatch black"></span>Чорний</label><label><input type="radio" name="color" value="white"><span class="swatch white"></span>Білий</label><label><input type="radio" name="color" value="silver"><span class="swatch silver"></span>Срібний</label><label><input type="radio" name="color" value="red"><span class="swatch red"></span>Червоний</label><label><input type="radio" name="color" value="blue"><span class="swatch blue"></span>Синій</label><label><input type="radio" name="color" value="green"><span class="swatch green"></span>Зелений</label>
+      </div></fieldset><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button type="button" class="primary next-step">Далі</button></div></section>
+      <section class="wizard-step" data-step="3"><p class="eyebrow">КРОК 3 З 3</p><h3>Детальний опис</h3><label>Опис<textarea name="description" maxlength="700" placeholder="Стан, пробіг, комплектація, що ремонтувалося…" required></textarea></label><label class="vip-option"><input type="checkbox" name="requestVip" value="true"><span>💎 Спробувати VIP-місце №1–10</span><small>Вартість: 10 кристалів. Без вибору місце №11–100 буде безкоштовним і випадковим.</small></label><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button class="primary" type="submit">Виставити машину</button></div></section>
+    </form>
+  </section>
+
+  <section id="developerScreen" class="screen overlay-screen"><header><button class="back-market">←</button><h2>Написати розробнику</h2></header><div class="panel developer-panel"><div class="developer-icon">👨‍💻</div><h3>Є ідея або знайшли помилку?</h3><p>Опишіть пропозицію. Повідомлення відкриється в Telegram.</p><textarea id="developerText" maxlength="700" placeholder="Напишіть повідомлення…"></textarea><button id="sendDeveloper" class="primary">Відкрити Telegram</button></div></section>
+
+  <section id="inboxScreen" class="screen overlay-screen"><header><button id="backMarket">←</button><h2>Чати</h2></header><div class="chat-layout"><aside id="conversations" class="conversations"></aside><main id="chatPanel" class="chat-panel"><div id="chatEmpty" class="chat-empty">Оберіть діалог</div><div id="chatActive" class="hidden"><div class="chat-head"><button id="closeChat">←</button><div><b id="chatName"></b><small id="chatCar"></small></div></div><div id="chatMessages" class="chat-messages"></div><div class="chat-compose"><textarea id="chatText" maxlength="700" placeholder="Напишіть повідомлення..."></textarea><button id="sendChat" class="primary">Надіслати</button></div></div></main></div></section>
+
+  <div id="carModal" class="modal hidden"><div class="backdrop close-car-modal"></div><article><button class="close close-car-modal">×</button><div id="showcaseCar" class="showcase-car car-3d color-red"><i></i><b></b><span></span></div><p id="mSlot" class="eyebrow"></p><h2 id="mTitle"></h2><div class="details"><span>Рік<b id="mYear"></b></span><span>Ціна<b id="mPrice"></b></span><span>Колір<b id="mColor"></b></span><span>Продавець<b id="mSeller"></b></span></div><p id="mDescription"></p><button id="openChatBtn" class="primary">Написати продавцю</button><button id="removeBtn" class="danger hidden">Зняти оголошення</button></article></div>
+
+  <div id="vipModal" class="modal hidden"><div class="backdrop close-vip-modal"></div><article class="vip-card"><button class="close close-vip-modal">×</button><div class="vip-gem">💎</div><p class="eyebrow">ЦЕНТРАЛЬНИЙ VIP-РЯД</p><h2>Купити VIP-місце?</h2><p>Місця №1–10 мають преміальну підсвітку й розташовані найближче до офісу.</p><div class="vip-price">10 💎</div><button id="buyVipBtn" class="primary">Купити кристали</button><button id="continueFreeBtn" class="secondary">Поставити безкоштовно</button></article></div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="/js/app.js?v=20260725-40"></script>
+</body>
+</html>
