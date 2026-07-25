@@ -49,7 +49,33 @@ function updateCamera(){const camera=$('#camera'),world=$('#world');if(!camera||
 function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
 
 socket.emit('auth',{initData:tg?.initData||'',demoUser:demo()});
-socket.on('auth:ok',d=>{user=d.user;listings=d.listings||[];messages=d.messages||[];players=d.players||[];crystals=Number(d.crystals||0);dailyBonusAvailable=!!d.dailyBonusAvailable;$('#officeBonusDot').classList.toggle('hidden',!dailyBonusAvailable);updateOfficeBonusState();$('#playerName').textContent=user.name||telegramDisplayName();$('#headerPlayerName').textContent=user.name||telegramDisplayName();const own=listings.find(l=>String(l.sellerId)===String(user.id));$('#headerRating').textContent=Number(own?.sellerRating||0).toFixed(1);render();emitPlayerUpdate(false);setTimeout(()=>show('marketScreen'),900)});
+socket.on('auth:ok',d=>{
+  user=d.user;
+  listings=d.listings||[];
+  messages=d.messages||[];
+  players=d.players||[];
+  crystals=Number(d.crystals||0);
+  dailyBonusAvailable=!!d.dailyBonusAvailable;
+
+  const officeBonusDot=$('#officeBonusDot');
+  if(officeBonusDot)officeBonusDot.classList.toggle('hidden',!dailyBonusAvailable);
+
+  updateOfficeBonusState();
+
+  const displayName=user.name||telegramDisplayName();
+  const playerName=$('#playerName');
+  const headerPlayerName=$('#headerPlayerName');
+  if(playerName)playerName.textContent=displayName;
+  if(headerPlayerName)headerPlayerName.textContent=displayName;
+
+  const own=listings.find(l=>String(l.sellerId)===String(user.id));
+  const headerRating=$('#headerRating');
+  if(headerRating)headerRating.textContent=Number(own?.sellerRating||0).toFixed(1);
+
+  render();
+  emitPlayerUpdate(false);
+  setTimeout(()=>show('marketScreen'),900);
+});
 socket.on('auth:error',toast);socket.on('listing:error',toast);
 socket.on('vip:purchase-required',d=>{pendingSale=d?.payload||pendingSale;$('#vipModal').classList.remove('hidden')});
 socket.on('balance:update',d=>{crystals=Number(d.crystals||0);$('#crystalCount').textContent=crystals});
