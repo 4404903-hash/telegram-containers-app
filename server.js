@@ -29,7 +29,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
-app.get('/version', (_req, res) => res.json({ version: '4.2.1', build: 'marketplace-update' }));
+app.get('/version', (_req, res) => res.json({ version: '5.0.0', build: 'visual-rebuild' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: false,
   lastModified: false,

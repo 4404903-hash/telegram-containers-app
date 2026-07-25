@@ -14,24 +14,26 @@ function demo(){let id=localStorage.getItem('abId');if(!id){id='demo-'+crypto.ra
 
 function marketplaceSlots(){
   const result=[];
-  const leftX=[210,355,500,645,790];
-  const rightX=[1210,1355,1500,1645,1790];
-  const rowsY=[510,665,820,975,1130,1285,1440,1595,];
   let id=1;
-  // Перший ряд біля офісу: VIP 1–10
-  [...leftX,...rightX].forEach(x=>result.push({id:id++,x,y:510,rotation:0}));
-  // Решта місць: окремі широкі ряди з центральним проїздом
-  for(const y of rowsY.slice(1)){
-    for(const x of [...leftX,...rightX]) result.push({id:id++,x,y,rotation:0});
-  }
-  // Останні 20 місць нижче, ближче до в'їзду
-  for(const y of [1695,1810]){
-    for(const x of [...leftX,...rightX]) result.push({id:id++,x,y,rotation:0});
-  }
+  // VIP: два блоки біля сучасного офісу
+  const vipLeft=[600,735,870], vipRight=[1130,1265,1400,1535];
+  [...vipLeft,...vipRight].slice(0,10).forEach(x=>result.push({id:id++,x,y:500,rotation:0}));
+  while(id<=10){result.push({id:id++,x:450+(id-1)*120,y:500,rotation:0})}
+  // Основні місця: 5 ліворуч + 5 праворуч у кожному ряду, з широким центральним проїздом
+  const left=[245,385,525,665,805], right=[1195,1335,1475,1615,1755];
+  const ys=[760,1020,1280,1540];
+  for(const y of ys){for(const x of [...left,...right])result.push({id:id++,x,y,rotation:0})}
+  // Решта місць по периметру нижньої частини майданчика
+  const lowerYs=[1660,1780];
+  for(const y of lowerYs){for(const x of [...left,...right])result.push({id:id++,x,y,rotation:0})}
+  // Додаткові місця вздовж боків, щоб загалом було 100
+  const sideYs=[650,900,1150,1400,1650];
+  for(const y of sideYs){for(const x of [170,1830])result.push({id:id++,x,y,rotation:0})}
+  while(id<=100){const n=id-1;result.push({id:id++,x:250+(n%10)*165,y:1720-Math.floor((n-70)/10)*150,rotation:0})}
   return result.slice(0,100);
 }
 const slots=marketplaceSlots();
-function renderSlots(){const layer=$('#slotLayer');layer.innerHTML='';slots.forEach(s=>{const spot=document.createElement('div');spot.className=`parking-slot ${s.id<=10?'vip':''}`;spot.dataset.slotId=s.id;spot.style.left=s.x+'px';spot.style.top=s.y+'px';spot.style.setProperty('--r',s.rotation+'deg');spot.innerHTML=`<small>${s.id}</small>`;const l=listings.find(x=>Number(x.slotId??x.spot)===s.id&&x.status!=='removed');if(l){const car=document.createElement('button');car.type='button';car.className='car';car.dataset.listingId=l.id;car.style.setProperty('--r',s.rotation+'deg');car.innerHTML=`<span class="car-label"><b>${esc(l.brand)} ${esc(l.model)}</b><small>$${Number(l.price).toLocaleString()}</small></span><span class="car-3d color-${esc(l.color||'red')}"><i></i><b></b><span></span></span><em class="online-dot ${l.sellerOnline?'':'offline'}"></em>`;if(l.id===lastCreatedListingId)car.classList.add('drive-in');car.onclick=()=>tryOpenCar(l,car);spot.appendChild(car)}layer.appendChild(spot)});requestAnimationFrame(updateNearbyCars)}
+function renderSlots(){const layer=$('#slotLayer');layer.innerHTML='';slots.forEach(s=>{const spot=document.createElement('div');spot.className=`parking-slot ${s.id<=10?'vip':''}`;spot.dataset.slotId=s.id;spot.style.left=s.x+'px';spot.style.top=s.y+'px';spot.style.setProperty('--r',s.rotation+'deg');spot.innerHTML=`<small>${s.id}</small>`;const l=listings.find(x=>Number(x.slotId??x.spot)===s.id&&x.status!=='removed');if(l){const car=document.createElement('button');car.type='button';car.className='car';car.dataset.listingId=l.id;car.style.setProperty('--r',s.rotation+'deg');car.innerHTML=`<span class="car-label"><b>${esc(l.brand)} ${esc(l.model)}</b><small>$${Number(l.price).toLocaleString()}</small></span><img src="/assets/cars/${esc(l.color||'black')}.png" alt="${esc(l.brand)} ${esc(l.model)}"><em class="online-dot ${l.sellerOnline?'':'offline'}"></em>`;if(l.id===lastCreatedListingId)car.classList.add('drive-in');car.onclick=()=>tryOpenCar(l,car);spot.appendChild(car)}layer.appendChild(spot)});requestAnimationFrame(updateNearbyCars)}
 function renderRemotePlayers(){const layer=$('#remotePlayers');if(!layer||!user)return;layer.innerHTML='';players.filter(p=>String(p.id)!==String(user.id)).forEach(p=>{const el=document.createElement('div');el.className=`player remote-player ${p.moving?'running':''} ${p.faceLeft?'face-left':''}`;el.style.left=Number(p.x)+'px';el.style.top=Number(p.y)+'px';el.innerHTML=`<span class="person-sprite"><i></i><b></b></span><small>${esc(p.name||'Гравець')}</small>`;layer.appendChild(el)})}
 function updateCamera(){const camera=$('#camera'),world=$('#world');if(!camera||!world)return;const w=camera.clientWidth,h=camera.clientHeight;const tx=Math.round(w/2-pos.x*zoom),ty=Math.round(h/2-pos.y*zoom);world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${zoom})`;$('#player').style.left=pos.x+'px';$('#player').style.top=pos.y+'px';$('#zoomValue').textContent=Math.round(zoom*100)+'%'}
 function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
@@ -53,7 +55,7 @@ function distanceToElement(el){const r=el.getBoundingClientRect(),c=$('#camera')
 function tryOpenCar(l,car){if(distanceToElement(car)>INTERACTION_RADIUS){car.classList.add('too-far');setTimeout(()=>car.classList.remove('too-far'),450);return toast('Підійдіть ближче до автомобіля')}openCar(l)}
 function updateNearbyCars(){$$('.car').forEach(c=>c.classList.toggle('nearby',distanceToElement(c)<=INTERACTION_RADIUS));const nearOffice=distanceToElement($('#office'))<=190;$('#office').style.filter=nearOffice?'drop-shadow(0 0 18px #58ff9a)':''}
 function updateRatingPanel(l){const avg=Number(l.sellerRating||0),count=Number(l.ratingCount||0);$('#mRating').textContent=count?`${avg.toFixed(1)} ★ · ${count} оцінок`:'Новий продавець';const mine=String(l.sellerId)===String(user.id);$('#ratingStars').innerHTML=mine?'<small>Власний профіль</small>':[1,2,3,4,5].map(n=>`<button type="button" data-rate="${n}" title="${n} з 5">★</button>`).join('');$$('#ratingStars [data-rate]').forEach(b=>b.onclick=()=>socket.emit('seller:rate',{sellerId:l.sellerId,rating:Number(b.dataset.rate)}))}
-function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=10?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').className=`showcase-car car-3d color-${l.color||'red'}`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
+function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=10?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').src=`/assets/cars/${l.color||'black'}.png`;$('#showcaseCar').alt=`${l.brand} ${l.model}`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
 function closeCarModal(){$('#carModal').classList.add('hidden');selected=null}
 
 function openOffice(){if(distanceToElement($('#office'))>210)return toast('Підійдіть ближче до офісу');openMenu()}
@@ -74,7 +76,7 @@ function renderMyCars(){
   const cars=myActiveCars(),box=$('#myCarsList');
   $('#myCarsCount').textContent=cars.length;
   if(!cars.length){box.innerHTML='<div class="empty-list">Ви ще не виставили жодного автомобіля.</div>';return}
-  box.innerHTML=cars.map(l=>`<div class="my-car-item" data-id="${esc(l.id)}"><div class="my-car-thumb"><span class="car-3d color-${esc(l.color||'black')}"><i></i><b></b><span></span></span></div><div><h3>${esc(l.brand)} ${esc(l.model)}</h3><p>$${Number(l.price).toLocaleString()} · місце №${Number(l.slotId??l.spot)}</p><p>На продажу</p></div><div class="my-car-actions"><button class="details-btn" data-details="${esc(l.id)}">Деталі</button><button class="remove-car" data-remove="${esc(l.id)}">Зняти</button></div></div>`).join('');
+  box.innerHTML=cars.map(l=>`<div class="my-car-item" data-id="${esc(l.id)}"><div class="my-car-thumb"><img src="/assets/cars/${esc(l.color||'black')}.png" alt="${esc(l.brand)} ${esc(l.model)}"></div><div><h3>${esc(l.brand)} ${esc(l.model)}</h3><p>$${Number(l.price).toLocaleString()} · місце №${Number(l.slotId??l.spot)}</p><p>● На продажу</p></div><div class="my-car-actions"><button class="details-btn" data-details="${esc(l.id)}">Деталі</button><button class="remove-car" data-remove="${esc(l.id)}">Зняти з продажу</button></div></div>`).join('');
   box.querySelectorAll('[data-details]').forEach(b=>b.onclick=()=>{const l=listings.find(x=>x.id===b.dataset.details);if(l){closeMyCars();openCar(l)}});
   box.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('Зняти це авто з продажу?')){socket.emit('listing:remove',b.dataset.remove);toast('Оголошення знято')}});
 }
