@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>AutoBazar Game</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260725-600">
+  <link rel="stylesheet" href="/css/style.css?v=20260725-610">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -22,25 +22,16 @@
 
   <section id="marketScreen" class="screen game-screen">
     <header class="market-header">
-      <button id="menuBtn" class="profile-card" aria-label="Меню"><span class="profile-avatar">👤</span><span><b id="headerPlayerName">Гравець</b><small>Рейтинг: ⭐ <em id="headerRating">0.0</em></small></span></button>
-      <div class="market-title"><strong>Єдиний автобазар</strong><span>100 паркомісць</span><small class="build-version">v6.0</small></div>
+      <button id="menuBtn" class="hamburger-button" aria-label="Відкрити меню"><span></span><span></span><span></span></button>
+      <div class="market-title"><strong>Єдиний автобазар</strong><span>50 великих паркомісць</span><small class="build-version">v6.1</small></div>
       <div class="header-actions"><button id="crystalBtn" class="crystal-button">💎 <b id="crystalCount">0</b></button><button id="inboxBtn" class="inbox-button">💬<b id="badge" class="hidden">0</b></button></div>
     </header>
-    <nav class="quick-menu">
-      <button id="quickOffice">🏢 <span>ОФІС</span></button>
-      <button id="quickMyCars">🚗 <span>МОЇ АВТО</span><b id="quickMyCarsCount">0</b></button>
-      <button id="quickRating">🏆 <span>РЕЙТИНГ</span></button>
-      <button id="quickCrystals">💎 <span>КРИСТАЛИ</span></button>
-      <button id="quickDeveloper">✈️ <span>РОЗРОБНИК<br><small>@s_5994</small></span></button>
-    </nav>
-    <button id="dailyFloating" class="daily-floating">🎁 <span>Щоденний бонус</span><b>Отримати</b></button>
-
     <div id="camera" class="camera">
       <div id="world" class="world">
         <div class="market-ground"></div><div class="tree-line top"></div><div class="tree-line left"></div><div class="tree-line right"></div><div class="outside-road"></div>
         <div class="market-fence fence-top"></div><div class="market-fence fence-left"></div><div class="market-fence fence-right"></div><div class="market-fence fence-bottom-left"></div><div class="market-fence fence-bottom-right"></div>
         <div class="market-gate gate-left"></div><div class="market-gate gate-right"></div>
-        <div class="main-lane"></div><div class="lane-markings"></div><div class="crosswalk"></div>
+        <div class="main-lane"></div><div class="lane-markings"></div><div class="crosswalk"></div><div class="side-lane lane-left"></div><div class="side-lane lane-right"></div><div class="parking-label vip-label">VIP ЗОНА</div><div class="parking-label regular-label">ВЕЛИКІ ПАРКОМІСЦЯ</div>
         <div id="slotLayer" class="slot-layer"></div>
         <button id="office" class="office" type="button">
           <span class="office-roof"></span><span class="office-glass"></span><span class="office-door"></span><span class="office-window left"></span><span class="office-window right"></span><b>AUTO BAZAR</b><small>ОФІС</small>
@@ -56,7 +47,7 @@
 
   <aside id="gameMenu" class="side-menu hidden">
     <div class="side-backdrop" data-close-menu></div>
-    <div class="side-panel"><button class="side-close" data-close-menu>×</button><h2>AutoBazar</h2><button id="menuDaily">🎁 Щоденний бонус <span id="dailyDot" class="menu-dot hidden"></span></button><button id="menuSell">🚘 Продати машину</button><button id="menuMyCars">🚗 Мої авто <span id="myCarsCount" class="menu-count">0</span></button><button id="menuDeveloper">✉️ Написати розробнику</button><button id="menuChats">💬 Мої чати</button></div>
+    <div class="side-panel"><button class="side-close" data-close-menu>×</button><h2>☰ Меню</h2><button id="menuOffice">🏢 Офіс <span id="officeBonusDot" class="menu-dot hidden"></span></button><button id="menuSell">🚘 Продати машину</button><button id="menuMyCars">🚗 Мої авто <span id="myCarsCount" class="menu-count">0</span></button><button id="menuChats">💬 Мої чати</button><button id="menuDeveloper">✉️ Розробник</button></div>
   </aside>
 
   <section id="sellScreen" class="screen overlay-screen">
@@ -67,7 +58,7 @@
       <section class="wizard-step" data-step="2"><p class="eyebrow">КРОК 2 З 3</p><h3>Основні характеристики</h3><label>Рік<input name="year" type="number" min="1950" max="2030" placeholder="2020" required></label><label>Ціна, $<input name="price" type="number" min="1" placeholder="25000" required></label><fieldset><legend>Колір</legend><div class="color-picker">
         <label><input type="radio" name="color" value="black" checked><span class="swatch black"></span>Чорний</label><label><input type="radio" name="color" value="white"><span class="swatch white"></span>Білий</label><label><input type="radio" name="color" value="silver"><span class="swatch silver"></span>Срібний</label><label><input type="radio" name="color" value="red"><span class="swatch red"></span>Червоний</label><label><input type="radio" name="color" value="blue"><span class="swatch blue"></span>Синій</label><label><input type="radio" name="color" value="green"><span class="swatch green"></span>Зелений</label>
       </div></fieldset><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button type="button" class="primary next-step">Далі</button></div></section>
-      <section class="wizard-step" data-step="3"><p class="eyebrow">КРОК 3 З 3</p><h3>Детальний опис</h3><label>Опис<textarea name="description" maxlength="700" placeholder="Стан, пробіг, комплектація, що ремонтувалося…" required></textarea></label><label class="vip-option"><input type="checkbox" name="requestVip" value="true"><span>💎 Спробувати VIP-місце №1–10</span><small>Вартість: 10 кристалів. Без вибору місце №11–100 буде безкоштовним і випадковим.</small></label><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button class="primary" type="submit">Виставити машину</button></div></section>
+      <section class="wizard-step" data-step="3"><p class="eyebrow">КРОК 3 З 3</p><h3>Детальний опис</h3><label>Опис<textarea name="description" maxlength="700" placeholder="Стан, пробіг, комплектація, що ремонтувалося…" required></textarea></label><label class="vip-option"><input type="checkbox" name="requestVip" value="true"><span>💎 Спробувати VIP-місце №1–5</span><small>Вартість: 10 кристалів. Без вибору місце №6–50 буде безкоштовним і випадковим.</small></label><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button class="primary" type="submit">Виставити машину</button></div></section>
     </form>
   </section>
 
@@ -75,14 +66,16 @@
 
   <section id="inboxScreen" class="screen overlay-screen"><header><button id="backMarket">←</button><h2>Чати</h2></header><div class="chat-layout"><aside id="conversations" class="conversations"></aside><main id="chatPanel" class="chat-panel"><div id="chatEmpty" class="chat-empty">Оберіть діалог</div><div id="chatActive" class="hidden"><div class="chat-head"><button id="closeChat">←</button><div><b id="chatName"></b><small id="chatCar"></small></div></div><div id="chatMessages" class="chat-messages"></div><div class="chat-compose"><textarea id="chatText" maxlength="700" placeholder="Напишіть повідомлення..."></textarea><button id="sendChat" class="primary">Надіслати</button></div></div></main></div></section>
 
+  <div id="officeModal" class="modal hidden"><div class="backdrop close-office-modal"></div><article class="office-card"><button class="close close-office-modal">×</button><p class="eyebrow">🏢 ОФІС AUTOBazar</p><h2>Керування автобазаром</h2><div class="office-actions"><button id="officeDaily" class="office-action daily"><span>🎁</span><b>Щоденний бонус</b><small id="officeDailyText">Забрати нагороду</small></button><button id="officeSell" class="office-action"><span>🚘</span><b>Продати машину</b><small>Виставити авто на майданчик</small></button><button id="officeMyCars" class="office-action"><span>🚗</span><b>Мої авто</b><small>Переглянути оголошення</small></button><button id="officeRating" class="office-action"><span>🏆</span><b>Рейтинг</b><small>Рейтинг продавців</small></button></div></article></div>
+
   <div id="carModal" class="modal hidden"><div class="backdrop close-car-modal"></div><article><button class="close close-car-modal">×</button><div id="showcaseCar" class="showcase-car car-3d color-red"><i></i><b></b><span></span></div><p id="mSlot" class="eyebrow"></p><h2 id="mTitle"></h2><div class="details"><span>Рік<b id="mYear"></b></span><span>Ціна<b id="mPrice"></b></span><span>Колір<b id="mColor"></b></span><span>Продавець<b id="mSeller"></b></span></div><div class="seller-rating"><div><small>Рейтинг продавця</small><strong id="mRating">Новий продавець</strong></div><div id="ratingStars" class="rating-stars" aria-label="Оцінити продавця"></div></div><p id="mDescription"></p><button id="openChatBtn" class="primary">Написати продавцю</button><button id="removeBtn" class="danger hidden">Зняти оголошення</button></article></div>
 
 
   <div id="myCarsModal" class="modal hidden"><div class="backdrop close-my-cars"></div><article class="my-cars-card"><button class="close close-my-cars">×</button><p class="eyebrow">ОСОБИСТИЙ ГАРАЖ</p><h2>Мої авто на продажу</h2><div id="myCarsList" class="my-cars-list"></div><button id="addAnotherCar" class="primary">Виставити нове авто</button></article></div>
 
-  <div id="vipModal" class="modal hidden"><div class="backdrop close-vip-modal"></div><article class="vip-card"><button class="close close-vip-modal">×</button><div class="vip-gem">💎</div><p class="eyebrow">ЦЕНТРАЛЬНИЙ VIP-РЯД</p><h2>Купити VIP-місце?</h2><p>Місця №1–10 мають преміальну підсвітку й розташовані найближче до офісу.</p><div class="vip-price">10 💎</div><button id="buyVipBtn" class="primary">Купити кристали</button><button id="continueFreeBtn" class="secondary">Поставити безкоштовно</button></article></div>
+  <div id="vipModal" class="modal hidden"><div class="backdrop close-vip-modal"></div><article class="vip-card"><button class="close close-vip-modal">×</button><div class="vip-gem">💎</div><p class="eyebrow">ЦЕНТРАЛЬНИЙ VIP-РЯД</p><h2>Купити VIP-місце?</h2><p>Місця №1–5 мають преміальну підсвітку й розташовані найближче до офісу.</p><div class="vip-price">10 💎</div><button id="buyVipBtn" class="primary">Купити кристали</button><button id="continueFreeBtn" class="secondary">Поставити безкоштовно</button></article></div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="/js/app.js?v=20260725-600"></script>
+  <script type="module" src="/js/app.js?v=20260725-610"></script>
 </body>
 </html>

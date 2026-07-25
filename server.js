@@ -11,6 +11,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const DEMO_MODE = String(process.env.DEMO_MODE || 'true') === 'true';
 const VIP_PRICE = 10;
+const VIP_SLOTS = 5;
+const TOTAL_SLOTS = 50;
 
 if (!DATABASE_URL) {
   console.error('Помилка: DATABASE_URL не налаштована');
@@ -29,7 +31,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
-app.get('/version', (_req, res) => res.json({ version: '6.0.0', build: 'full-visual-rebuild' }));
+app.get('/version', (_req, res) => res.json({ version: '6.1.0', build: '50-large-slots-menu-office-bonus' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: false,
   lastModified: false,
@@ -123,7 +125,7 @@ async function initDatabase() {
   await pool.query(`CREATE INDEX IF NOT EXISTS seller_ratings_seller_idx ON seller_ratings (seller_id)`);
 
 
-  console.log('PostgreSQL підключено. Таблиці AutoBazar v4.0 готові');
+  console.log('PostgreSQL підключено. Таблиці AutoBazar v6.1 готові');
 }
 
 function validateTelegramInitData(initData) {
@@ -252,7 +254,7 @@ io.on('connection', (socket) => {
 
       const account = await ensureUser(user);
       onlineUsers.set(user.id, socket.id);
-      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1000, y: 1640, moving: false, faceLeft: false, socketId: socket.id });
+      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1300, y: 2260, moving: false, faceLeft: false, socketId: socket.id });
       socket.join(`user:${user.id}`);
 
       const [listings, messages] = await Promise.all([getPublicListings(), getUserMessages(user.id)]);
@@ -271,7 +273,7 @@ io.on('connection', (socket) => {
     if (!pl) return;
     const x = Number(p?.x), y = Number(p?.y);
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    Object.assign(pl, { x: Math.max(0, Math.min(2000, x)), y: Math.max(0, Math.min(2000, y)), moving: !!p.moving, faceLeft: !!p.faceLeft });
+    Object.assign(pl, { x: Math.max(0, Math.min(2600, x)), y: Math.max(0, Math.min(2600, y)), moving: !!p.moving, faceLeft: !!p.faceLeft });
     socket.broadcast.emit('player:updated', { id: pl.id, name: pl.name, x: pl.x, y: pl.y, moving: pl.moving, faceLeft: pl.faceLeft });
   });
 
@@ -298,15 +300,15 @@ io.on('connection', (socket) => {
           await client.query('ROLLBACK');
           return socket.emit('vip:purchase-required', { price: VIP_PRICE, payload: p });
         }
-        slotId = await randomFreeSlot(client, 1, 10);
+        slotId = await randomFreeSlot(client, 1, VIP_SLOTS);
         if (slotId === null) {
           await client.query('ROLLBACK');
-          return socket.emit('listing:error', 'Усі VIP-місця зайняті');
+          return socket.emit('listing:error', 'Усі 5 VIP-місць зайняті');
         }
         const balance = await client.query(`UPDATE users SET crystals=crystals-$1, updated_at=NOW() WHERE id=$2 RETURNING crystals`, [VIP_PRICE, user.id]);
         socket.emit('balance:update', { crystals: Number(balance.rows[0].crystals) });
       } else {
-        slotId = await randomFreeSlot(client, 11, 100);
+        slotId = await randomFreeSlot(client, VIP_SLOTS + 1, TOTAL_SLOTS);
         if (slotId === null) {
           await client.query('ROLLBACK');
           return socket.emit('listing:error', 'Усі безкоштовні місця зайняті');
@@ -418,7 +420,7 @@ io.on('connection', (socket) => {
 app.get('/health', async (_q, r) => {
   try {
     await pool.query('SELECT 1');
-    r.json({ ok: true, database: true, map: '2000x2000', slots: 100 });
+    r.json({ ok: true, database: true, map: '2600x2600', slots: TOTAL_SLOTS });
   } catch {
     r.status(500).json({ ok: false, database: false });
   }
@@ -428,7 +430,7 @@ app.get('/{*splat}', (_q, r) => r.sendFile(path.join(__dirname, 'public', 'index
 async function start() {
   try {
     await initDatabase();
-    server.listen(PORT, () => console.log(`AutoBazar v4.0 PostgreSQL: http://localhost:${PORT}`));
+    server.listen(PORT, () => console.log(`AutoBazar v6.1 PostgreSQL: http://localhost:${PORT}`));
   } catch (error) {
     console.error('Не вдалося запустити сервер:', error);
     process.exit(1);

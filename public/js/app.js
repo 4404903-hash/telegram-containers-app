@@ -2,9 +2,9 @@ const socket=io();
 const tg=window.Telegram?.WebApp;
 tg?.ready();tg?.expand();tg?.disableVerticalSwipes?.();
 
-const MAP_SIZE=2600, CENTER=1300, INTERACTION_RADIUS=155, VIP_PRICE=10;
+const MAP_SIZE=2600, CENTER=1300, INTERACTION_RADIUS=175, VIP_PRICE=10, VIP_SLOTS=5, TOTAL_SLOTS=50;
 const COLOR_NAMES={black:'Чорний',white:'Білий',silver:'Срібний',red:'Червоний',blue:'Синій',green:'Зелений',yellow:'Жовтий',purple:'Фіолетовий'};
-let user=null,listings=[],messages=[],players=[],selected=null,activeChat=null,pos={x:1300,y:2210},crystals=0,runStopTimer=null,joystickFrame=null,pendingSale=null,zoom=.5,dailyBonusAvailable=false,lastCreatedListingId=null;
+let user=null,listings=[],messages=[],players=[],selected=null,activeChat=null,pos={x:1300,y:2260},crystals=0,runStopTimer=null,joystickFrame=null,pendingSale=null,zoom=.5,dailyBonusAvailable=false,lastCreatedListingId=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 function show(id){$$('.screen').forEach(x=>x.classList.toggle('active',x.id===id))}
@@ -14,15 +14,13 @@ function demo(){let id=localStorage.getItem('abId');if(!id){id='demo-'+crypto.ra
 
 function marketplaceSlots(){
   const result=[];
-  const leftX=[360,520,680,840,1000];
-  const rightX=[1600,1760,1920,2080,2240];
   let id=1;
-  // 10 VIP-місць біля офісу
-  [...leftX,...rightX].forEach(x=>result.push({id:id++,x,y:570,rotation:0}));
-  // 90 звичайних місць: 9 рядів по 10
-  const rowsY=[830,1000,1170,1340,1510,1680,1850,2020,2190];
-  for(const y of rowsY){
-    for(const x of [...leftX,...rightX]) result.push({id:id++,x,y,rotation:0});
+  // 5 великих VIP-місць прямо перед офісом
+  for(const x of [660,980,1300,1620,1940]) result.push({id:id++,x,y:610,rotation:0});
+  // 45 повнорозмірних місць: 5 рядів по 9
+  const xs=[340,580,820,1060,1300,1540,1780,2020,2260];
+  for(const y of [930,1240,1550,1860,2170]){
+    for(const x of xs) result.push({id:id++,x,y,rotation:0});
   }
   return result;
 }
@@ -32,7 +30,7 @@ function renderSlots(){
   const layer=$('#slotLayer');layer.innerHTML='';
   slots.forEach(s=>{
     const spot=document.createElement('div');
-    spot.className=`parking-slot ${s.id<=10?'vip':''}`;
+    spot.className=`parking-slot ${s.id<=VIP_SLOTS?'vip':''}`;
     spot.dataset.slotId=s.id;spot.style.left=s.x+'px';spot.style.top=s.y+'px';
     spot.innerHTML=`<small>${s.id}</small>`;
     const l=listings.find(x=>Number(x.slotId??x.spot)===s.id&&x.status!=='removed');
@@ -48,10 +46,10 @@ function renderSlots(){
 }
 function renderRemotePlayers(){const layer=$('#remotePlayers');if(!layer||!user)return;layer.innerHTML='';players.filter(p=>String(p.id)!==String(user.id)).forEach(p=>{const el=document.createElement('div');el.className=`player remote-player ${p.moving?'running':''} ${p.faceLeft?'face-left':''}`;el.style.left=Number(p.x)+'px';el.style.top=Number(p.y)+'px';el.innerHTML=`<span class="person-sprite"><i></i><b></b></span><small>${esc(p.name||'Гравець')}</small>`;layer.appendChild(el)})}
 function updateCamera(){const camera=$('#camera'),world=$('#world');if(!camera||!world)return;const w=camera.clientWidth,h=camera.clientHeight;const tx=Math.round(w/2-pos.x*zoom),ty=Math.round(h/2-pos.y*zoom);world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${zoom})`;$('#player').style.left=pos.x+'px';$('#player').style.top=pos.y+'px';$('#zoomValue').textContent=Math.round(zoom*100)+'%'}
-function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;$('#quickMyCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
+function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
 
 socket.emit('auth',{initData:tg?.initData||'',demoUser:demo()});
-socket.on('auth:ok',d=>{user=d.user;listings=d.listings||[];messages=d.messages||[];players=d.players||[];crystals=Number(d.crystals||0);dailyBonusAvailable=!!d.dailyBonusAvailable;$('#dailyDot').classList.toggle('hidden',!dailyBonusAvailable);$('#playerName').textContent=user.name||telegramDisplayName();$('#headerPlayerName').textContent=user.name||telegramDisplayName();const own=listings.find(l=>String(l.sellerId)===String(user.id));$('#headerRating').textContent=Number(own?.sellerRating||0).toFixed(1);render();emitPlayerUpdate(false);setTimeout(()=>show('marketScreen'),900)});
+socket.on('auth:ok',d=>{user=d.user;listings=d.listings||[];messages=d.messages||[];players=d.players||[];crystals=Number(d.crystals||0);dailyBonusAvailable=!!d.dailyBonusAvailable;$('#officeBonusDot').classList.toggle('hidden',!dailyBonusAvailable);updateOfficeBonusState();$('#playerName').textContent=user.name||telegramDisplayName();$('#headerPlayerName').textContent=user.name||telegramDisplayName();const own=listings.find(l=>String(l.sellerId)===String(user.id));$('#headerRating').textContent=Number(own?.sellerRating||0).toFixed(1);render();emitPlayerUpdate(false);setTimeout(()=>show('marketScreen'),900)});
 socket.on('auth:error',toast);socket.on('listing:error',toast);
 socket.on('vip:purchase-required',d=>{pendingSale=d?.payload||pendingSale;$('#vipModal').classList.remove('hidden')});
 socket.on('balance:update',d=>{crystals=Number(d.crystals||0);$('#crystalCount').textContent=crystals});
@@ -61,21 +59,24 @@ socket.on('world:players',x=>{players=x||[];renderRemotePlayers()});
 socket.on('player:updated',p=>{const i=players.findIndex(x=>String(x.id)===String(p.id));i>=0?players[i]=p:players.push(p);renderRemotePlayers()});
 socket.on('player:left',p=>{players=players.filter(x=>String(x.id)!==String(p.id));renderRemotePlayers()});
 socket.on('chat:new',m=>{messages.push(m);toast(`Нове повідомлення від ${m.fromName}`);renderConversations();if(activeChat&&sameChatMessage(m,activeChat)){markChatRead();renderChat()}});
-socket.on('chat:sent',m=>{messages.push(m);$('#chatText').value='';renderConversations();renderChat()});socket.on('daily:result',d=>{if(d.ok){crystals=Number(d.crystals);dailyBonusAvailable=false;$('#dailyDot').classList.add('hidden');$('#crystalCount').textContent=crystals;toast(`Щоденний бонус: +${d.reward} 💎`)}else toast(d.message)});socket.on('seller:rating-updated',d=>{listings.forEach(l=>{if(String(l.sellerId)===String(d.sellerId)){l.sellerRating=d.rating;l.ratingCount=d.ratingCount}});if(selected&&String(selected.sellerId)===String(d.sellerId))updateRatingPanel(selected);renderSlots()});
+socket.on('chat:sent',m=>{messages.push(m);$('#chatText').value='';renderConversations();renderChat()});socket.on('daily:result',d=>{if(d.ok){crystals=Number(d.crystals);dailyBonusAvailable=false;$('#officeBonusDot').classList.add('hidden');updateOfficeBonusState();$('#crystalCount').textContent=crystals;toast(`Щоденний бонус: +${d.reward} 💎`)}else toast(d.message)});socket.on('seller:rating-updated',d=>{listings.forEach(l=>{if(String(l.sellerId)===String(d.sellerId)){l.sellerRating=d.rating;l.ratingCount=d.ratingCount}});if(selected&&String(selected.sellerId)===String(d.sellerId))updateRatingPanel(selected);renderSlots()});
 
 function distanceToElement(el){const r=el.getBoundingClientRect(),c=$('#camera').getBoundingClientRect();return Math.hypot(r.left+r.width/2-(c.left+c.width/2),r.top+r.height/2-(c.top+c.height/2))}
 function tryOpenCar(l,car){if(distanceToElement(car)>INTERACTION_RADIUS){car.classList.add('too-far');setTimeout(()=>car.classList.remove('too-far'),450);return toast('Підійдіть ближче до автомобіля')}openCar(l)}
 function updateNearbyCars(){$$('.car').forEach(c=>c.classList.toggle('nearby',distanceToElement(c)<=INTERACTION_RADIUS));const nearOffice=distanceToElement($('#office'))<=190;$('#office').style.filter=nearOffice?'drop-shadow(0 0 18px #58ff9a)':''}
 function updateRatingPanel(l){const avg=Number(l.sellerRating||0),count=Number(l.ratingCount||0);$('#mRating').textContent=count?`${avg.toFixed(1)} ★ · ${count} оцінок`:'Новий продавець';const mine=String(l.sellerId)===String(user.id);$('#ratingStars').innerHTML=mine?'<small>Власний профіль</small>':[1,2,3,4,5].map(n=>`<button type="button" data-rate="${n}" title="${n} з 5">★</button>`).join('');$$('#ratingStars [data-rate]').forEach(b=>b.onclick=()=>socket.emit('seller:rate',{sellerId:l.sellerId,rating:Number(b.dataset.rate)}))}
-function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=10?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').className='showcase-car';$('#showcaseCar').style.backgroundImage=`url(${carImage(l.color)})`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
+function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=VIP_SLOTS?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').className='showcase-car';$('#showcaseCar').style.backgroundImage=`url(${carImage(l.color)})`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
 function closeCarModal(){$('#carModal').classList.add('hidden');selected=null}
 
-function openOffice(){if(distanceToElement($('#office'))>210)return toast('Підійдіть ближче до офісу');openMenu()}
+function updateOfficeBonusState(){const text=$('#officeDailyText'),btn=$('#officeDaily');if(!text||!btn)return;text.textContent=dailyBonusAvailable?'Нагорода готова — забрати':'Сьогодні вже отримано';btn.classList.toggle('available',dailyBonusAvailable)}
+function showOffice(){updateOfficeBonusState();$('#officeModal').classList.remove('hidden')}
+function closeOffice(){$('#officeModal').classList.add('hidden')}
+function openOffice(){if(distanceToElement($('#office'))>235)return toast('Підійдіть ближче до офісу');showOffice()}
 function openMenu(){$('#gameMenu').classList.remove('hidden')}
 function closeMenu(){$('#gameMenu').classList.add('hidden')}
 $('#office').onclick=openOffice;$('#menuBtn').onclick=openMenu;$$('[data-close-menu]').forEach(x=>x.onclick=closeMenu);
-$('#menuDaily').onclick=()=>{closeMenu();socket.emit('daily:claim')};$('#menuSell').onclick=()=>{closeMenu();show('sellScreen')};$('#menuMyCars').onclick=()=>{closeMenu();openMyCars()};$('#menuDeveloper').onclick=()=>{closeMenu();show('developerScreen')};$('#menuChats').onclick=()=>{closeMenu();showInbox()};$$('.back-market').forEach(x=>x.onclick=()=>show('marketScreen'));
-$('#quickOffice').onclick=()=>show('sellScreen');$('#quickMyCars').onclick=openMyCars;$('#quickRating').onclick=()=>toast('Рейтинг продавців показується в картці автомобіля');$('#quickCrystals').onclick=()=>toast(`Ваш баланс: ${crystals} 💎`);$('#quickDeveloper').onclick=()=>show('developerScreen');$('#dailyFloating').onclick=()=>socket.emit('daily:claim');
+$('#menuOffice').onclick=()=>{closeMenu();showOffice()};$('#menuSell').onclick=()=>{closeMenu();show('sellScreen')};$('#menuMyCars').onclick=()=>{closeMenu();openMyCars()};$('#menuDeveloper').onclick=()=>{closeMenu();show('developerScreen')};$('#menuChats').onclick=()=>{closeMenu();showInbox()};$$('.back-market').forEach(x=>x.onclick=()=>show('marketScreen'));
+$$('.close-office-modal').forEach(x=>x.onclick=closeOffice);$('#officeDaily').onclick=()=>socket.emit('daily:claim');$('#officeSell').onclick=()=>{closeOffice();show('sellScreen')};$('#officeMyCars').onclick=()=>{closeOffice();openMyCars()};$('#officeRating').onclick=()=>toast('Рейтинг продавців показується в картці автомобіля');
 
 function setStep(step){$$('.wizard-step').forEach(x=>x.classList.toggle('active',Number(x.dataset.step)===step));$$('.step-indicator i').forEach((x,i)=>x.classList.toggle('active',i<step))}
 $$('.next-step').forEach(btn=>btn.onclick=()=>{const current=btn.closest('.wizard-step'),inputs=[...current.querySelectorAll('input[required],textarea[required]')];if(inputs.some(x=>!x.reportValidity()))return;setStep(Number(current.dataset.step)+1)});$$('.prev-step').forEach(btn=>btn.onclick=()=>setStep(Number(btn.closest('.wizard-step').dataset.step)-1));
