@@ -97,10 +97,7 @@ async function initDatabase() {
     )
   `);
 
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS unique_active_listing_per_seller
-    ON listings (seller_id) WHERE status = 'active'
-  `);
+  await pool.query(`DROP INDEX IF EXISTS unique_active_listing_per_seller`);
 
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS unique_active_slot
@@ -254,7 +251,7 @@ io.on('connection', (socket) => {
 
       const account = await ensureUser(user);
       onlineUsers.set(user.id, socket.id);
-      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1000, y: 1260, moving: false, faceLeft: false, socketId: socket.id });
+      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1000, y: 1640, moving: false, faceLeft: false, socketId: socket.id });
       socket.join(`user:${user.id}`);
 
       const [listings, messages] = await Promise.all([getPublicListings(), getUserMessages(user.id)]);
@@ -291,12 +288,6 @@ io.on('connection', (socket) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const existing = await client.query(`SELECT id FROM listings WHERE seller_id=$1 AND status='active' LIMIT 1`, [user.id]);
-      if (existing.rowCount) {
-        await client.query('ROLLBACK');
-        return socket.emit('listing:error', 'Один гравець може продавати одну машину');
-      }
-
       const requestVip = p?.requestVip === true || p?.requestVip === 'true';
       let slotId;
       if (requestVip) {
