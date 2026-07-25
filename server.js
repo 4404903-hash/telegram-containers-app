@@ -47,7 +47,8 @@ async function initDatabase() {
       username TEXT NOT NULL DEFAULT '',
       crystals INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_daily_bonus DATE
     )
   `);
 
@@ -108,6 +109,21 @@ async function initDatabase() {
 
   await pool.query(`CREATE INDEX IF NOT EXISTS messages_users_idx ON messages (from_user_id, to_user_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS messages_listing_idx ON messages (listing_id)`);
+
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_bonus DATE`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS seller_ratings (
+      seller_id TEXT NOT NULL,
+      rater_id TEXT NOT NULL,
+      rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (seller_id, rater_id)
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS seller_ratings_seller_idx ON seller_ratings (seller_id)`);
+
 
   console.log('PostgreSQL підключено. Таблиці AutoBazar v4.0 готові');
 }
@@ -180,9 +196,17 @@ async function ensureUser(user) {
 }
 
 async function getPublicListings() {
-  const result = await pool.query(`SELECT * FROM listings WHERE status='active' ORDER BY slot_id ASC`);
-  return result.rows.map(row => ({ ...mapListing(row), sellerOnline: onlineUsers.has(String(row.seller_id)) }));
+  const result = await pool.query(`
+    SELECT l.*, COALESCE(AVG(sr.rating),0) AS seller_rating, COUNT(sr.rating)::int AS rating_count
+    FROM listings l
+    LEFT JOIN seller_ratings sr ON sr.seller_id=l.seller_id
+    WHERE l.status='active'
+    GROUP BY l.id
+    ORDER BY l.slot_id ASC
+  `);
+  return result.rows.map(row => ({ ...mapListing(row), sellerOnline: onlineUsers.has(String(row.seller_id)), sellerRating: Number(row.seller_rating), ratingCount: Number(row.rating_count) }));
 }
+
 
 function getPublicPlayers() {
   return [...onlinePlayers.values()].map(({ socketId, ...player }) => player);
@@ -234,7 +258,8 @@ io.on('connection', (socket) => {
       socket.join(`user:${user.id}`);
 
       const [listings, messages] = await Promise.all([getPublicListings(), getUserMessages(user.id)]);
-      socket.emit('auth:ok', { user, listings, messages, players: getPublicPlayers(), crystals: account.crystals });
+      const bonusCheck = await pool.query(`SELECT last_daily_bonus, CURRENT_DATE AS today FROM users WHERE id=$1`, [user.id]);
+      socket.emit('auth:ok', { user, listings, messages, players: getPublicPlayers(), crystals: account.crystals, dailyBonusAvailable: String(bonusCheck.rows[0]?.last_daily_bonus || '') !== String(bonusCheck.rows[0]?.today || '') });
       await emitWorld();
     } catch (error) {
       console.error('Auth error:', error);
@@ -324,6 +349,34 @@ io.on('connection', (socket) => {
       socket.emit('balance:update', { crystals: Number(result.rows[0].crystals) });
       socket.emit('listing:error', 'Демо: додано 20 кристалів');
     } catch (error) { console.error(error); }
+  });
+
+
+  socket.on('daily:claim', async () => {
+    if (!user) return;
+    try {
+      const reward = 5;
+      const result = await pool.query(`
+        UPDATE users SET crystals=crystals+$1, last_daily_bonus=CURRENT_DATE, updated_at=NOW()
+        WHERE id=$2 AND (last_daily_bonus IS NULL OR last_daily_bonus < CURRENT_DATE)
+        RETURNING crystals
+      `, [reward, user.id]);
+      if (!result.rowCount) return socket.emit('daily:result', { ok:false, message:'Сьогодні бонус уже отримано' });
+      socket.emit('daily:result', { ok:true, reward, crystals:Number(result.rows[0].crystals) });
+    } catch (error) { console.error('Daily bonus error:', error); }
+  });
+
+  socket.on('seller:rate', async (p) => {
+    if (!user) return;
+    const sellerId=String(p?.sellerId||'');
+    const rating=Number(p?.rating);
+    if (!sellerId || sellerId===user.id || !Number.isInteger(rating) || rating<1 || rating>5) return;
+    try {
+      await pool.query(`INSERT INTO seller_ratings (seller_id,rater_id,rating) VALUES ($1,$2,$3)
+        ON CONFLICT (seller_id,rater_id) DO UPDATE SET rating=EXCLUDED.rating,updated_at=NOW()`, [sellerId,user.id,rating]);
+      const r=await pool.query(`SELECT COALESCE(AVG(rating),0) avg, COUNT(*)::int count FROM seller_ratings WHERE seller_id=$1`,[sellerId]);
+      io.emit('seller:rating-updated',{sellerId,rating:Number(r.rows[0].avg),ratingCount:Number(r.rows[0].count)});
+    } catch(error){console.error('Rating error:',error)}
   });
 
   socket.on('listing:remove', async (id) => {

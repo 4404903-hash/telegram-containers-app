@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>AutoBazar Game</title>
-  <link rel="stylesheet" href="/css/style.css?v=20260725-40">
+  <link rel="stylesheet" href="/css/style.css?v=20260725-41">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -40,18 +40,18 @@
           <span class="office-roof"></span><span class="office-door"></span><span class="office-window left"></span><span class="office-window right"></span>
           <b>ОФІС</b><small>Продаж авто · Розробник</small>
         </button>
-        <div id="remotePlayers" class="remote-players"></div>
+        <div id="npcLayer" class="npc-layer"></div><div id="remotePlayers" class="remote-players"></div>
         <div id="player" class="player"><span class="person-sprite"><i></i><b></b></span><small id="playerName">Я</small></div>
       </div>
     </div>
 
-    <div class="map-help">Підійдіть до офісу або автомобіля</div>
+    <div class="zoom-controls"><button id="zoomOut" aria-label="Зменшити">−</button><b id="zoomValue">100%</b><button id="zoomIn" aria-label="Збільшити">+</button></div><div class="map-help">Розведіть два пальці, щоб змінити масштаб</div>
     <div class="joystick-wrap"><div id="joystickBase" class="joystick-base"><div id="joystickStick" class="joystick-stick"></div></div></div>
   </section>
 
   <aside id="gameMenu" class="side-menu hidden">
     <div class="side-backdrop" data-close-menu></div>
-    <div class="side-panel"><button class="side-close" data-close-menu>×</button><h2>AutoBazar</h2><button id="menuSell">🚘 Продати машину</button><button id="menuDeveloper">✉️ Написати розробнику</button><button id="menuChats">💬 Мої чати</button></div>
+    <div class="side-panel"><button class="side-close" data-close-menu>×</button><h2>AutoBazar</h2><button id="menuDaily">🎁 Щоденний бонус <span id="dailyDot" class="menu-dot hidden"></span></button><button id="menuSell">🚘 Продати машину</button><button id="menuDeveloper">✉️ Написати розробнику</button><button id="menuChats">💬 Мої чати</button></div>
   </aside>
 
   <section id="sellScreen" class="screen overlay-screen">
@@ -70,11 +70,11 @@
 
   <section id="inboxScreen" class="screen overlay-screen"><header><button id="backMarket">←</button><h2>Чати</h2></header><div class="chat-layout"><aside id="conversations" class="conversations"></aside><main id="chatPanel" class="chat-panel"><div id="chatEmpty" class="chat-empty">Оберіть діалог</div><div id="chatActive" class="hidden"><div class="chat-head"><button id="closeChat">←</button><div><b id="chatName"></b><small id="chatCar"></small></div></div><div id="chatMessages" class="chat-messages"></div><div class="chat-compose"><textarea id="chatText" maxlength="700" placeholder="Напишіть повідомлення..."></textarea><button id="sendChat" class="primary">Надіслати</button></div></div></main></div></section>
 
-  <div id="carModal" class="modal hidden"><div class="backdrop close-car-modal"></div><article><button class="close close-car-modal">×</button><div id="showcaseCar" class="showcase-car car-3d color-red"><i></i><b></b><span></span></div><p id="mSlot" class="eyebrow"></p><h2 id="mTitle"></h2><div class="details"><span>Рік<b id="mYear"></b></span><span>Ціна<b id="mPrice"></b></span><span>Колір<b id="mColor"></b></span><span>Продавець<b id="mSeller"></b></span></div><p id="mDescription"></p><button id="openChatBtn" class="primary">Написати продавцю</button><button id="removeBtn" class="danger hidden">Зняти оголошення</button></article></div>
+  <div id="carModal" class="modal hidden"><div class="backdrop close-car-modal"></div><article><button class="close close-car-modal">×</button><div id="showcaseCar" class="showcase-car car-3d color-red"><i></i><b></b><span></span></div><p id="mSlot" class="eyebrow"></p><h2 id="mTitle"></h2><div class="details"><span>Рік<b id="mYear"></b></span><span>Ціна<b id="mPrice"></b></span><span>Колір<b id="mColor"></b></span><span>Продавець<b id="mSeller"></b></span></div><div class="seller-rating"><div><small>Рейтинг продавця</small><strong id="mRating">Новий продавець</strong></div><div id="ratingStars" class="rating-stars" aria-label="Оцінити продавця"></div></div><p id="mDescription"></p><button id="openChatBtn" class="primary">Написати продавцю</button><button id="removeBtn" class="danger hidden">Зняти оголошення</button></article></div>
 
   <div id="vipModal" class="modal hidden"><div class="backdrop close-vip-modal"></div><article class="vip-card"><button class="close close-vip-modal">×</button><div class="vip-gem">💎</div><p class="eyebrow">ЦЕНТРАЛЬНИЙ VIP-РЯД</p><h2>Купити VIP-місце?</h2><p>Місця №1–10 мають преміальну підсвітку й розташовані найближче до офісу.</p><div class="vip-price">10 💎</div><button id="buyVipBtn" class="primary">Купити кристали</button><button id="continueFreeBtn" class="secondary">Поставити безкоштовно</button></article></div>
 
   <div id="toast" class="toast hidden"></div>
-  <script type="module" src="/js/app.js?v=20260725-40"></script>
+  <script type="module" src="/js/app.js?v=20260725-41"></script>
 </body>
 </html>
