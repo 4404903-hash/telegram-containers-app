@@ -2,9 +2,9 @@ const socket=io();
 const tg=window.Telegram?.WebApp;
 tg?.ready();tg?.expand();tg?.disableVerticalSwipes?.();
 
-const MAP_SIZE=2000, CENTER=1000, INTERACTION_RADIUS=145, VIP_PRICE=10;
+const MAP_SIZE=2600, CENTER=1300, INTERACTION_RADIUS=155, VIP_PRICE=10;
 const COLOR_NAMES={black:'Чорний',white:'Білий',silver:'Срібний',red:'Червоний',blue:'Синій',green:'Зелений',yellow:'Жовтий',purple:'Фіолетовий'};
-let user=null,listings=[],messages=[],players=[],selected=null,activeChat=null,pos={x:1000,y:1640},crystals=0,runStopTimer=null,joystickFrame=null,pendingSale=null,zoom=1,dailyBonusAvailable=false,lastCreatedListingId=null;
+let user=null,listings=[],messages=[],players=[],selected=null,activeChat=null,pos={x:1300,y:2210},crystals=0,runStopTimer=null,joystickFrame=null,pendingSale=null,zoom=.5,dailyBonusAvailable=false,lastCreatedListingId=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 function show(id){$$('.screen').forEach(x=>x.classList.toggle('active',x.id===id))}
@@ -14,32 +14,44 @@ function demo(){let id=localStorage.getItem('abId');if(!id){id='demo-'+crypto.ra
 
 function marketplaceSlots(){
   const result=[];
+  const leftX=[360,520,680,840,1000];
+  const rightX=[1600,1760,1920,2080,2240];
   let id=1;
-  // VIP: два блоки біля сучасного офісу
-  const vipLeft=[600,735,870], vipRight=[1130,1265,1400,1535];
-  [...vipLeft,...vipRight].slice(0,10).forEach(x=>result.push({id:id++,x,y:500,rotation:0}));
-  while(id<=10){result.push({id:id++,x:450+(id-1)*120,y:500,rotation:0})}
-  // Основні місця: 5 ліворуч + 5 праворуч у кожному ряду, з широким центральним проїздом
-  const left=[245,385,525,665,805], right=[1195,1335,1475,1615,1755];
-  const ys=[760,1020,1280,1540];
-  for(const y of ys){for(const x of [...left,...right])result.push({id:id++,x,y,rotation:0})}
-  // Решта місць по периметру нижньої частини майданчика
-  const lowerYs=[1660,1780];
-  for(const y of lowerYs){for(const x of [...left,...right])result.push({id:id++,x,y,rotation:0})}
-  // Додаткові місця вздовж боків, щоб загалом було 100
-  const sideYs=[650,900,1150,1400,1650];
-  for(const y of sideYs){for(const x of [170,1830])result.push({id:id++,x,y,rotation:0})}
-  while(id<=100){const n=id-1;result.push({id:id++,x:250+(n%10)*165,y:1720-Math.floor((n-70)/10)*150,rotation:0})}
-  return result.slice(0,100);
+  // 10 VIP-місць біля офісу
+  [...leftX,...rightX].forEach(x=>result.push({id:id++,x,y:570,rotation:0}));
+  // 90 звичайних місць: 9 рядів по 10
+  const rowsY=[830,1000,1170,1340,1510,1680,1850,2020,2190];
+  for(const y of rowsY){
+    for(const x of [...leftX,...rightX]) result.push({id:id++,x,y,rotation:0});
+  }
+  return result;
 }
 const slots=marketplaceSlots();
-function renderSlots(){const layer=$('#slotLayer');layer.innerHTML='';slots.forEach(s=>{const spot=document.createElement('div');spot.className=`parking-slot ${s.id<=10?'vip':''}`;spot.dataset.slotId=s.id;spot.style.left=s.x+'px';spot.style.top=s.y+'px';spot.style.setProperty('--r',s.rotation+'deg');spot.innerHTML=`<small>${s.id}</small>`;const l=listings.find(x=>Number(x.slotId??x.spot)===s.id&&x.status!=='removed');if(l){const car=document.createElement('button');car.type='button';car.className='car';car.dataset.listingId=l.id;car.style.setProperty('--r',s.rotation+'deg');car.innerHTML=`<span class="car-label"><b>${esc(l.brand)} ${esc(l.model)}</b><small>$${Number(l.price).toLocaleString()}</small></span><img src="/assets/cars/${esc(l.color||'black')}.png" alt="${esc(l.brand)} ${esc(l.model)}"><em class="online-dot ${l.sellerOnline?'':'offline'}"></em>`;if(l.id===lastCreatedListingId)car.classList.add('drive-in');car.onclick=()=>tryOpenCar(l,car);spot.appendChild(car)}layer.appendChild(spot)});requestAnimationFrame(updateNearbyCars)}
+function carImage(color){return `/assets/cars/${COLOR_NAMES[color]?color:'black'}.png`}
+function renderSlots(){
+  const layer=$('#slotLayer');layer.innerHTML='';
+  slots.forEach(s=>{
+    const spot=document.createElement('div');
+    spot.className=`parking-slot ${s.id<=10?'vip':''}`;
+    spot.dataset.slotId=s.id;spot.style.left=s.x+'px';spot.style.top=s.y+'px';
+    spot.innerHTML=`<small>${s.id}</small>`;
+    const l=listings.find(x=>Number(x.slotId??x.spot)===s.id&&x.status!=='removed');
+    if(l){
+      const car=document.createElement('button');car.type='button';car.className='car';car.dataset.listingId=l.id;
+      car.innerHTML=`<span class="car-label"><b>${esc(l.brand)} ${esc(l.model)}</b><small>$${Number(l.price).toLocaleString()}</small></span><img src="${carImage(l.color)}" alt="${esc(l.brand)} ${esc(l.model)}"><em class="online-dot ${l.sellerOnline?'':'offline'}"></em>`;
+      if(l.id===lastCreatedListingId)car.classList.add('drive-in');
+      car.onclick=()=>tryOpenCar(l,car);spot.appendChild(car);
+    }
+    layer.appendChild(spot);
+  });
+  requestAnimationFrame(updateNearbyCars);
+}
 function renderRemotePlayers(){const layer=$('#remotePlayers');if(!layer||!user)return;layer.innerHTML='';players.filter(p=>String(p.id)!==String(user.id)).forEach(p=>{const el=document.createElement('div');el.className=`player remote-player ${p.moving?'running':''} ${p.faceLeft?'face-left':''}`;el.style.left=Number(p.x)+'px';el.style.top=Number(p.y)+'px';el.innerHTML=`<span class="person-sprite"><i></i><b></b></span><small>${esc(p.name||'Гравець')}</small>`;layer.appendChild(el)})}
 function updateCamera(){const camera=$('#camera'),world=$('#world');if(!camera||!world)return;const w=camera.clientWidth,h=camera.clientHeight;const tx=Math.round(w/2-pos.x*zoom),ty=Math.round(h/2-pos.y*zoom);world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${zoom})`;$('#player').style.left=pos.x+'px';$('#player').style.top=pos.y+'px';$('#zoomValue').textContent=Math.round(zoom*100)+'%'}
-function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
+function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;$('#quickMyCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
 
 socket.emit('auth',{initData:tg?.initData||'',demoUser:demo()});
-socket.on('auth:ok',d=>{user=d.user;listings=d.listings||[];messages=d.messages||[];players=d.players||[];crystals=Number(d.crystals||0);dailyBonusAvailable=!!d.dailyBonusAvailable;$('#dailyDot').classList.toggle('hidden',!dailyBonusAvailable);$('#playerName').textContent=user.name||telegramDisplayName();render();emitPlayerUpdate(false);setTimeout(()=>show('marketScreen'),900)});
+socket.on('auth:ok',d=>{user=d.user;listings=d.listings||[];messages=d.messages||[];players=d.players||[];crystals=Number(d.crystals||0);dailyBonusAvailable=!!d.dailyBonusAvailable;$('#dailyDot').classList.toggle('hidden',!dailyBonusAvailable);$('#playerName').textContent=user.name||telegramDisplayName();$('#headerPlayerName').textContent=user.name||telegramDisplayName();const own=listings.find(l=>String(l.sellerId)===String(user.id));$('#headerRating').textContent=Number(own?.sellerRating||0).toFixed(1);render();emitPlayerUpdate(false);setTimeout(()=>show('marketScreen'),900)});
 socket.on('auth:error',toast);socket.on('listing:error',toast);
 socket.on('vip:purchase-required',d=>{pendingSale=d?.payload||pendingSale;$('#vipModal').classList.remove('hidden')});
 socket.on('balance:update',d=>{crystals=Number(d.crystals||0);$('#crystalCount').textContent=crystals});
@@ -55,7 +67,7 @@ function distanceToElement(el){const r=el.getBoundingClientRect(),c=$('#camera')
 function tryOpenCar(l,car){if(distanceToElement(car)>INTERACTION_RADIUS){car.classList.add('too-far');setTimeout(()=>car.classList.remove('too-far'),450);return toast('Підійдіть ближче до автомобіля')}openCar(l)}
 function updateNearbyCars(){$$('.car').forEach(c=>c.classList.toggle('nearby',distanceToElement(c)<=INTERACTION_RADIUS));const nearOffice=distanceToElement($('#office'))<=190;$('#office').style.filter=nearOffice?'drop-shadow(0 0 18px #58ff9a)':''}
 function updateRatingPanel(l){const avg=Number(l.sellerRating||0),count=Number(l.ratingCount||0);$('#mRating').textContent=count?`${avg.toFixed(1)} ★ · ${count} оцінок`:'Новий продавець';const mine=String(l.sellerId)===String(user.id);$('#ratingStars').innerHTML=mine?'<small>Власний профіль</small>':[1,2,3,4,5].map(n=>`<button type="button" data-rate="${n}" title="${n} з 5">★</button>`).join('');$$('#ratingStars [data-rate]').forEach(b=>b.onclick=()=>socket.emit('seller:rate',{sellerId:l.sellerId,rating:Number(b.dataset.rate)}))}
-function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=10?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').src=`/assets/cars/${l.color||'black'}.png`;$('#showcaseCar').alt=`${l.brand} ${l.model}`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
+function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=10?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').className='showcase-car';$('#showcaseCar').style.backgroundImage=`url(${carImage(l.color)})`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
 function closeCarModal(){$('#carModal').classList.add('hidden');selected=null}
 
 function openOffice(){if(distanceToElement($('#office'))>210)return toast('Підійдіть ближче до офісу');openMenu()}
@@ -63,6 +75,7 @@ function openMenu(){$('#gameMenu').classList.remove('hidden')}
 function closeMenu(){$('#gameMenu').classList.add('hidden')}
 $('#office').onclick=openOffice;$('#menuBtn').onclick=openMenu;$$('[data-close-menu]').forEach(x=>x.onclick=closeMenu);
 $('#menuDaily').onclick=()=>{closeMenu();socket.emit('daily:claim')};$('#menuSell').onclick=()=>{closeMenu();show('sellScreen')};$('#menuMyCars').onclick=()=>{closeMenu();openMyCars()};$('#menuDeveloper').onclick=()=>{closeMenu();show('developerScreen')};$('#menuChats').onclick=()=>{closeMenu();showInbox()};$$('.back-market').forEach(x=>x.onclick=()=>show('marketScreen'));
+$('#quickOffice').onclick=()=>show('sellScreen');$('#quickMyCars').onclick=openMyCars;$('#quickRating').onclick=()=>toast('Рейтинг продавців показується в картці автомобіля');$('#quickCrystals').onclick=()=>toast(`Ваш баланс: ${crystals} 💎`);$('#quickDeveloper').onclick=()=>show('developerScreen');$('#dailyFloating').onclick=()=>socket.emit('daily:claim');
 
 function setStep(step){$$('.wizard-step').forEach(x=>x.classList.toggle('active',Number(x.dataset.step)===step));$$('.step-indicator i').forEach((x,i)=>x.classList.toggle('active',i<step))}
 $$('.next-step').forEach(btn=>btn.onclick=()=>{const current=btn.closest('.wizard-step'),inputs=[...current.querySelectorAll('input[required],textarea[required]')];if(inputs.some(x=>!x.reportValidity()))return;setStep(Number(current.dataset.step)+1)});$$('.prev-step').forEach(btn=>btn.onclick=()=>setStep(Number(btn.closest('.wizard-step').dataset.step)-1));
@@ -76,7 +89,7 @@ function renderMyCars(){
   const cars=myActiveCars(),box=$('#myCarsList');
   $('#myCarsCount').textContent=cars.length;
   if(!cars.length){box.innerHTML='<div class="empty-list">Ви ще не виставили жодного автомобіля.</div>';return}
-  box.innerHTML=cars.map(l=>`<div class="my-car-item" data-id="${esc(l.id)}"><div class="my-car-thumb"><img src="/assets/cars/${esc(l.color||'black')}.png" alt="${esc(l.brand)} ${esc(l.model)}"></div><div><h3>${esc(l.brand)} ${esc(l.model)}</h3><p>$${Number(l.price).toLocaleString()} · місце №${Number(l.slotId??l.spot)}</p><p>● На продажу</p></div><div class="my-car-actions"><button class="details-btn" data-details="${esc(l.id)}">Деталі</button><button class="remove-car" data-remove="${esc(l.id)}">Зняти з продажу</button></div></div>`).join('');
+  box.innerHTML=cars.map(l=>`<div class="my-car-item" data-id="${esc(l.id)}"><div class="my-car-thumb"><img src="${carImage(l.color)}" alt="${esc(l.brand)}"></div><div><h3>${esc(l.brand)} ${esc(l.model)}</h3><p>$${Number(l.price).toLocaleString()} · місце №${Number(l.slotId??l.spot)}</p><p>На продажу</p></div><div class="my-car-actions"><button class="details-btn" data-details="${esc(l.id)}">Деталі</button><button class="remove-car" data-remove="${esc(l.id)}">Зняти</button></div></div>`).join('');
   box.querySelectorAll('[data-details]').forEach(b=>b.onclick=()=>{const l=listings.find(x=>x.id===b.dataset.details);if(l){closeMyCars();openCar(l)}});
   box.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('Зняти це авто з продажу?')){socket.emit('listing:remove',b.dataset.remove);toast('Оголошення знято')}});
 }
@@ -104,4 +117,4 @@ function move(dx,dy){pos.x=Math.max(45,Math.min(MAP_SIZE-45,pos.x+dx));pos.y=Mat
 window.onkeydown=e=>{const k={ArrowUp:[0,-10],w:[0,-10],ArrowDown:[0,10],s:[0,10],ArrowLeft:[-10,0],a:[-10,0],ArrowRight:[10,0],d:[10,0]};if(k[e.key]){e.preventDefault();move(...k[e.key])}};window.addEventListener('keyup',stopRunning);window.addEventListener('resize',updateCamera);
 const base=$('#joystickBase'),stick=$('#joystickStick');let joy={active:false,x:0,y:0,pointerId:null};function updateJoystick(e){const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.34,len=Math.hypot(dx,dy)||1;if(len>max){dx=dx/len*max;dy=dy/len*max}joy.x=dx/max;joy.y=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`}function joystickLoop(){if(!joy.active)return;move(joy.x*5.5,joy.y*5.5);joystickFrame=requestAnimationFrame(joystickLoop)}function stopJoystick(){joy.active=false;joy.x=joy.y=0;stick.style.transform='translate(0,0)';if(joystickFrame)cancelAnimationFrame(joystickFrame);stopRunning()}base.addEventListener('pointerdown',e=>{e.preventDefault();joy.active=true;joy.pointerId=e.pointerId;base.setPointerCapture(e.pointerId);updateJoystick(e);joystickLoop()});base.addEventListener('pointermove',e=>{if(joy.active&&e.pointerId===joy.pointerId){e.preventDefault();updateJoystick(e)}});base.addEventListener('pointerup',stopJoystick);base.addEventListener('pointercancel',stopJoystick);document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});document.addEventListener('dblclick',e=>e.preventDefault());
 
-function setZoom(v){zoom=Math.max(.55,Math.min(1.65,v));updateCamera();updateNearbyCars()}$('#zoomIn').onclick=()=>setZoom(zoom+.1);$('#zoomOut').onclick=()=>setZoom(zoom-.1);let pinch=null;$('#camera').addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY),z:zoom}}},{passive:true});$('#camera').addEventListener('touchmove',e=>{if(e.touches.length===2&&pinch){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(pinch.z*d/pinch.d)}},{passive:false});$('#camera').addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null},{passive:true});
+function setZoom(v){zoom=Math.max(.38,Math.min(1.25,v));updateCamera();updateNearbyCars()}$('#zoomIn').onclick=()=>setZoom(zoom+.1);$('#zoomOut').onclick=()=>setZoom(zoom-.1);let pinch=null;$('#camera').addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY),z:zoom}}},{passive:true});$('#camera').addEventListener('touchmove',e=>{if(e.touches.length===2&&pinch){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(pinch.z*d/pinch.d)}},{passive:false});$('#camera').addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null},{passive:true});
