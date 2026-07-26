@@ -10,3 +10,35 @@
 /* AutoBazar v6.1 — 50 великих місць, компактне меню, бонус в офісі */
 .hamburger-button{width:52px;height:48px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(5,22,31,.95);display:grid;align-content:center;gap:6px;padding:0 13px}.hamburger-button span{display:block;height:3px;border-radius:4px;background:#fff}.market-header{grid-template-columns:64px 1fr auto}.side-panel h2{margin:4px 0 22px}.menu-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#42ef8c;box-shadow:0 0 10px #42ef8c;margin-left:8px}.parking-slot{width:190px!important;height:270px!important;border-width:6px!important;border-radius:12px!important}.parking-slot>small{top:-37px!important;font-size:24px!important}.parking-slot.vip>small:after{content:" VIP"!important}.car img{width:122px!important;height:208px!important}.car-label{bottom:-54px!important;min-width:176px!important;padding:6px 10px!important}.main-lane{left:1180px!important;width:240px!important}.side-lane{position:absolute;top:760px;bottom:220px;width:120px;background:rgba(35,39,42,.82);border-left:7px solid rgba(255,255,255,.65);border-right:7px solid rgba(255,255,255,.65);z-index:1}.lane-left{left:85px}.lane-right{right:85px}.parking-label{position:absolute;left:50%;transform:translateX(-50%);z-index:3;color:rgba(255,255,255,.75);font-weight:900;letter-spacing:5px;text-shadow:0 2px 4px #000}.vip-label{top:735px;color:#ffe26a}.regular-label{top:785px}.office{top:330px!important}.office-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.office-action{border:1px solid #35515f;border-radius:14px;background:#142e3a;color:#fff;padding:16px;text-align:left;min-height:112px}.office-action span,.office-action b,.office-action small{display:block}.office-action span{font-size:30px}.office-action b{margin:7px 0 3px}.office-action small{color:#b8c8cf}.office-action.daily.available{border-color:#47e790;box-shadow:0 0 0 2px rgba(71,231,144,.15)}.office-action.daily.available small{color:#56ef9b}.quick-menu,.daily-floating{display:none!important}
 @media(max-width:700px){.market-header{grid-template-columns:56px 1fr auto}.hamburger-button{width:46px;height:44px;padding:0 11px}.office-actions{grid-template-columns:1fr}.parking-slot{width:190px!important;height:270px!important}.market-title span{font-size:11px}.market-title strong{font-size:14px}}
+/* Великий номер усередині паркомісця */
+.parking-slot > small{
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  top:50%!important;
+  bottom:auto!important;
+  transform:translateY(-50%)!important;
+
+  text-align:center!important;
+  font-size:58px!important;
+  font-weight:900!important;
+  line-height:1!important;
+
+  color:rgba(255,255,255,.26)!important;
+  text-shadow:0 3px 5px rgba(0,0,0,.55)!important;
+
+  pointer-events:none!important;
+  z-index:0!important;
+}
+
+/* Машина і табличка повинні бути над номером */
+.parking-slot .car{
+  z-index:1;
+}
+
+/* VIP напис залишається біля номера */
+.parking-slot.vip > small:after{
+  display:block;
+  margin-top:8px;
+  font-size:16px!important;
+}
