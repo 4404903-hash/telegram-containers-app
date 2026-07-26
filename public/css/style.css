@@ -1,44 +1,1504 @@
-:root{--bg:#061018;--panel:rgba(8,25,35,.94);--panel2:#122c3a;--text:#f7fbff;--muted:#a7b5bf;--blue:#1976d2;--green:#29d67d;--gold:#f3c63f;--danger:#c84843;--map:2600px}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061018;color:var(--text);font-family:Arial,Helvetica,sans-serif;touch-action:none;overscroll-behavior:none}button,input,textarea{font:inherit}.screen{display:none;width:100%;height:100%}.screen.active{display:block}.hidden{display:none!important}button{cursor:pointer}.loading-screen{background:radial-gradient(circle at 50% 35%,#254a2d,#061018 65%);text-align:center;padding-top:25vh}.loading-screen h1{font-size:38px;margin:15px}.loading-art{position:relative;height:180px}.market-sign{font-weight:900;font-size:40px}.loader{width:220px;height:8px;background:#17303b;margin:auto;border-radius:20px;overflow:hidden}.loader i{display:block;height:100%;width:60%;background:#28d67d;animation:load 1s infinite alternate}@keyframes load{to{transform:translateX(70%)}}
-.game-screen{position:relative;background:#0c171d}.market-header{position:absolute;z-index:50;top:0;left:0;right:0;height:92px;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:linear-gradient(180deg,rgba(4,13,18,.9),rgba(4,13,18,.15));pointer-events:none}.market-header>*{pointer-events:auto}.profile-card{display:flex;gap:10px;align-items:center;min-width:210px;border:1px solid rgba(255,255,255,.14);background:rgba(5,22,31,.92);color:#fff;border-radius:14px;padding:8px 12px;text-align:left}.profile-avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#2d6d93;font-size:28px}.profile-card b{display:block;font-size:17px}.profile-card small{display:block;color:#dce7ec;margin-top:4px}.profile-card em{font-style:normal;color:#ffd253}.market-title{text-align:center;text-shadow:0 2px 4px #000}.market-title strong{display:block;font-size:22px}.market-title span{display:block;font-size:18px;font-weight:700}.build-version{color:#47e792}.header-actions{display:flex;gap:8px}.crystal-button,.inbox-button{height:52px;border-radius:14px;border:1px solid rgba(255,255,255,.15);background:rgba(5,22,31,.92);color:#fff;font-size:20px;padding:0 16px;position:relative}.inbox-button b{position:absolute;right:-5px;top:-5px;background:#e84b4b;border-radius:20px;padding:2px 6px;font-size:11px}
-.camera{position:absolute;inset:0;overflow:hidden}.world{position:absolute;width:var(--map);height:var(--map);transform-origin:0 0;will-change:transform;background:#555}.market-ground{position:absolute;left:150px;top:130px;width:2300px;height:2200px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 2px,transparent 2px 80px),linear-gradient(#62666a,#4c5054);border-radius:20px;box-shadow:0 0 0 20px #2f3438,0 0 0 34px #101820}.tree-line{position:absolute;background:repeating-radial-gradient(circle at 30px 30px,#3f7a37 0 18px,#1d4b26 19px 28px,transparent 29px 70px)}.tree-line.top{left:100px;top:0;width:2400px;height:125px}.tree-line.left{left:0;top:80px;width:130px;height:2250px}.tree-line.right{right:0;top:80px;width:130px;height:2250px}.outside-road{position:absolute;left:0;top:2360px;width:2600px;height:240px;background:#333b42;border-top:18px solid #c8c8c8}.outside-road:after{content:"";position:absolute;left:0;right:0;top:105px;height:8px;background:repeating-linear-gradient(90deg,#ddd 0 80px,transparent 80px 160px)}
-.market-fence{position:absolute;background:repeating-linear-gradient(90deg,#111 0 7px,#39434b 7px 10px);z-index:3}.fence-top{left:120px;top:115px;width:2360px;height:18px}.fence-left{left:115px;top:115px;width:18px;height:2230px}.fence-right{right:115px;top:115px;width:18px;height:2230px}.fence-bottom-left{left:115px;top:2327px;width:900px;height:18px}.fence-bottom-right{right:115px;top:2327px;width:900px;height:18px}.market-gate{position:absolute;top:2310px;width:300px;height:35px;border:8px solid #151b20;z-index:4}.gate-left{left:1000px}.gate-right{left:1300px}.main-lane{position:absolute;left:1135px;top:440px;width:330px;height:1900px;background:#4b4f53}.lane-markings{position:absolute;left:1294px;top:620px;width:10px;height:1550px;background:repeating-linear-gradient(#e6e2ca 0 55px,transparent 55px 110px);opacity:.75}.crosswalk{position:absolute;left:1140px;top:450px;width:320px;height:90px;background:repeating-linear-gradient(90deg,#eee 0 34px,transparent 34px 55px);opacity:.8}.slot-layer{position:absolute;inset:0}.parking-slot{position:absolute;width:165px;height:250px;transform:translate(-50%,-50%);border:5px solid rgba(255,255,255,.84);border-radius:10px;background:rgba(20,20,20,.08)}.parking-slot>small{position:absolute;left:0;right:0;top:-31px;text-align:center;font-size:22px;color:#fff;text-shadow:0 2px 3px #000}.parking-slot.vip{border-color:#f4cf44;box-shadow:0 0 16px rgba(244,207,68,.45)}.parking-slot.vip>small:after{content:" VIP";color:#f4cf44;font-size:14px}.car{position:absolute;inset:3px;border:0;background:transparent;padding:0}.car img{width:96px;height:176px;object-fit:contain;filter:drop-shadow(0 10px 8px rgba(0,0,0,.55));transition:.18s}.car.nearby img{filter:drop-shadow(0 0 15px #52f09c) drop-shadow(0 10px 8px rgba(0,0,0,.5));transform:scale(1.05)}.car-label{position:absolute;left:50%;bottom:-48px;transform:translateX(-50%);min-width:150px;background:rgba(4,16,23,.92);border-radius:8px;padding:5px 8px;color:#fff;z-index:2}.car-label b,.car-label small{display:block;white-space:nowrap}.car-label small{color:#4fe48f}.online-dot{position:absolute;right:18px;top:25px;width:12px;height:12px;border-radius:50%;background:#39e886}.online-dot.offline{background:#72808a}.drive-in{animation:drivein 1.4s ease-out}@keyframes drivein{from{transform:translateY(500px);opacity:.3}to{transform:none;opacity:1}}.too-far{animation:shake .35s}@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.office{position:absolute;left:1300px;top:310px;transform:translate(-50%,-50%);width:390px;height:250px;border:0;background:linear-gradient(90deg,#3b2c21 0 22%,#20272c 22% 78%,#3b2c21 78%);border-radius:8px;box-shadow:0 18px 20px rgba(0,0,0,.55);color:#fff;z-index:5}.office-roof{position:absolute;left:-20px;right:-20px;top:-28px;height:55px;background:#343b40;border:5px solid #111}.office-glass{position:absolute;left:95px;top:35px;width:200px;height:120px;background:linear-gradient(135deg,#263b46,#0b161c);border:8px solid #12171b}.office-door{position:absolute;left:172px;bottom:0;width:48px;height:90px;background:#10171c;border:4px solid #789}.office b{position:absolute;left:100px;right:100px;bottom:74px;background:#0f1720;color:#fff;padding:7px;border-radius:4px}.office small{position:absolute;bottom:-28px;left:0;right:0;font-weight:bold}.office-window{display:none}
-.player{position:absolute;transform:translate(-50%,-82%);z-index:15;text-align:center}.player small{display:block;background:rgba(5,17,23,.85);padding:2px 6px;border-radius:6px;white-space:nowrap}.person-sprite{position:relative;display:block;width:42px;height:70px;margin:auto}.person-sprite:before{content:"";position:absolute;left:11px;top:0;width:20px;height:20px;background:#e7b18d;border:3px solid #422d25;border-radius:50%}.person-sprite i{position:absolute;left:7px;top:21px;width:28px;height:34px;background:#2d8cf0;border:3px solid #14283c;border-radius:8px}.person-sprite b:before,.person-sprite b:after{content:"";position:absolute;top:53px;width:9px;height:18px;background:#192738;border-radius:4px}.person-sprite b:before{left:8px}.person-sprite b:after{right:8px}.remote-player{opacity:.85}.running .person-sprite{animation:bob .25s infinite alternate}@keyframes bob{to{transform:translateY(-4px)}}
-.quick-menu{position:absolute;z-index:45;left:14px;top:112px;width:150px;display:grid;gap:8px}.quick-menu button{position:relative;display:flex;align-items:center;gap:9px;min-height:52px;border:1px solid rgba(255,255,255,.15);background:rgba(5,22,31,.93);color:#fff;border-radius:10px;padding:8px 10px;text-align:left;font-weight:800}.quick-menu button>span{font-size:13px}.quick-menu button>b{position:absolute;right:-5px;top:-6px;background:#e74949;border-radius:20px;padding:3px 7px}.quick-menu small{color:#4ac5ff}.daily-floating{position:absolute;z-index:45;right:14px;top:105px;border:1px solid rgba(255,255,255,.15);background:rgba(5,22,31,.93);color:#fff;border-radius:12px;padding:8px 12px}.daily-floating span{display:block}.daily-floating b{display:block;margin-top:4px;background:#20b96c;padding:5px;border-radius:7px}.zoom-controls{position:absolute;z-index:50;right:16px;bottom:116px;display:grid;gap:8px}.zoom-controls button,.zoom-controls b{width:58px;height:58px;border:0;border-radius:13px;background:rgba(5,22,31,.94);color:#fff;display:grid;place-items:center;font-size:30px}.zoom-controls b{height:38px;font-size:13px}.joystick-wrap{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:48}.joystick-base{width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,#3b4146 0 42%,#151a1e 43% 65%,#050708 66%);border:5px solid #383f45;position:relative}.joystick-stick{position:absolute;width:66px;height:66px;left:37px;top:37px;border-radius:50%;background:linear-gradient(#41474c,#1b1f22);box-shadow:inset 0 0 0 3px #555}.map-help{position:absolute;z-index:40;left:50%;bottom:178px;transform:translateX(-50%);background:rgba(4,16,23,.84);padding:8px 14px;border-radius:9px}
-.side-menu{position:fixed;inset:0;z-index:100}.side-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}.side-panel{position:absolute;left:0;top:0;bottom:0;width:min(340px,88vw);background:#0c202b;padding:24px}.side-panel button{display:block;width:100%;margin:9px 0;padding:14px;background:#173342;color:#fff;border:0;border-radius:12px;text-align:left}.side-close{font-size:26px!important;width:auto!important;margin-left:auto!important}.overlay-screen{position:fixed!important;inset:0;z-index:80;background:#07131b;overflow:auto;padding-bottom:30px}.overlay-screen header{height:72px;display:flex;align-items:center;gap:12px;padding:10px 15px;background:#102734}.overlay-screen header button{border:0;background:#1d4052;color:#fff;border-radius:10px;padding:10px}.sell-wizard,.panel{max-width:680px;margin:20px auto;padding:20px}.wizard-step{display:none}.wizard-step.active{display:block}.step-indicator{display:flex;align-items:center;justify-content:center;margin-bottom:20px}.step-indicator i{width:34px;height:34px;border-radius:50%;background:#233b48;display:grid;place-items:center;font-style:normal}.step-indicator i.active{background:#2ed77d;color:#07120c}.step-indicator span{width:60px;height:4px;background:#233b48}label{display:block;margin:13px 0;color:#dfe8ed}input,textarea{width:100%;margin-top:7px;padding:13px;border-radius:10px;border:1px solid #34505e;background:#0b1b24;color:#fff}textarea{min-height:120px}.color-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.color-picker label{background:#102934;padding:8px;border-radius:8px}.swatch{display:inline-block;width:16px;height:16px;border-radius:50%;margin-right:6px}.black{background:#111}.white{background:#fff}.silver{background:#aaa}.red{background:#b22}.blue{background:#25c}.green{background:#286}.primary,.secondary,.danger{border:0;border-radius:11px;padding:13px 17px;font-weight:800}.primary{background:#1976d2;color:#fff}.secondary{background:#294251;color:#fff}.danger{background:#b9433e;color:#fff}.wizard-nav{display:flex;gap:10px}.modal{position:fixed;inset:0;z-index:120;display:grid;place-items:center}.modal .backdrop{position:absolute;inset:0;background:rgba(0,0,0,.7)}.modal article{position:relative;width:min(560px,94vw);max-height:90vh;overflow:auto;background:linear-gradient(#102a38,#081820);border:1px solid #39515d;border-radius:16px;padding:20px}.close{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#fff;font-size:28px}.showcase-car{width:160px;height:220px;margin:0 auto;background-position:center;background-size:contain;background-repeat:no-repeat;filter:drop-shadow(0 12px 10px rgba(0,0,0,.55))}.details{display:grid;grid-template-columns:1fr 1fr;gap:8px}.details span{background:#17313e;padding:10px;border-radius:9px}.details b{display:block}.rating-stars button{border:0;background:transparent;color:#f4c63d;font-size:34px}.my-cars-list{display:grid;gap:10px}.my-car-item{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;background:#142e3a;padding:10px;border-radius:12px}.my-car-thumb img{width:70px}.my-car-actions{display:grid;gap:6px}.my-car-actions button{border:0;border-radius:8px;padding:8px;color:#fff}.details-btn{background:#1976d2}.remove-car{background:#b9433e}.chat-layout{display:grid;grid-template-columns:280px 1fr;height:calc(100% - 72px)}.conversations{background:#0c202b;overflow:auto}.conversation{width:100%;display:grid;grid-template-columns:42px 1fr auto;gap:8px;padding:12px;border:0;border-bottom:1px solid #203845;background:transparent;color:#fff;text-align:left}.conversation span b,.conversation span small,.conversation span em{display:block}.chat-panel{padding:14px}.chat-messages{height:calc(100vh - 250px);overflow:auto}.bubble{max-width:75%;padding:9px 12px;margin:8px;border-radius:12px;background:#17323f}.bubble.mine{margin-left:auto;background:#1769aa}.chat-compose{display:flex;gap:8px}.toast{position:fixed;z-index:200;left:50%;bottom:190px;transform:translateX(-50%);background:#07161e;color:#fff;padding:12px 18px;border-radius:10px}.empty-list{padding:25px;text-align:center;color:#aebbc3}@media(max-width:700px){.market-header{height:82px;padding:8px}.profile-card{min-width:0;width:140px;padding:6px}.profile-avatar{width:36px;height:36px;font-size:20px}.profile-card b{font-size:13px}.profile-card small{font-size:10px}.market-title strong{font-size:15px}.market-title span{font-size:13px}.market-title small{font-size:10px}.crystal-button,.inbox-button{height:42px;padding:0 10px;font-size:15px}.quick-menu{top:90px;left:8px;width:116px}.quick-menu button{min-height:44px;padding:6px;font-size:12px}.quick-menu button>span{font-size:10px}.daily-floating{top:88px;right:8px;font-size:11px}.map-help{display:none}.joystick-base{width:126px;height:126px}.joystick-stick{left:30px;top:30px}.zoom-controls{bottom:92px}.zoom-controls button{width:48px;height:48px}.chat-layout{grid-template-columns:1fr}.conversations{max-height:240px}.my-car-item{grid-template-columns:70px 1fr}.my-car-actions{grid-column:1/-1;grid-template-columns:1fr 1fr}}
+/* ============================================================
+   AUTObazar — головні стилі
+   Пошук по файлу:
+   - parking-slot  — паркомісця
+   - car-label     — марка, модель і ціна
+   - office        — офіс
+   - player        — персонаж
+   - joystick      — керування
+   - modal         — модальні вікна
+   ============================================================ */
 
-/* AutoBazar v6.1 — 50 великих місць, компактне меню, бонус в офісі */
-.hamburger-button{width:52px;height:48px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(5,22,31,.95);display:grid;align-content:center;gap:6px;padding:0 13px}.hamburger-button span{display:block;height:3px;border-radius:4px;background:#fff}.market-header{grid-template-columns:64px 1fr auto}.side-panel h2{margin:4px 0 22px}.menu-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#42ef8c;box-shadow:0 0 10px #42ef8c;margin-left:8px}.parking-slot{width:190px!important;height:270px!important;border-width:6px!important;border-radius:12px!important}.parking-slot>small{top:-37px!important;font-size:24px!important}.parking-slot.vip>small:after{content:" VIP"!important}.car img{width:122px!important;height:208px!important}.car-label{bottom:-54px!important;min-width:176px!important;padding:6px 10px!important}.main-lane{left:1180px!important;width:240px!important}.side-lane{position:absolute;top:760px;bottom:220px;width:120px;background:rgba(35,39,42,.82);border-left:7px solid rgba(255,255,255,.65);border-right:7px solid rgba(255,255,255,.65);z-index:1}.lane-left{left:85px}.lane-right{right:85px}.parking-label{position:absolute;left:50%;transform:translateX(-50%);z-index:3;color:rgba(255,255,255,.75);font-weight:900;letter-spacing:5px;text-shadow:0 2px 4px #000}.vip-label{top:735px;color:#ffe26a}.regular-label{top:785px}.office{top:330px!important}.office-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.office-action{border:1px solid #35515f;border-radius:14px;background:#142e3a;color:#fff;padding:16px;text-align:left;min-height:112px}.office-action span,.office-action b,.office-action small{display:block}.office-action span{font-size:30px}.office-action b{margin:7px 0 3px}.office-action small{color:#b8c8cf}.office-action.daily.available{border-color:#47e790;box-shadow:0 0 0 2px rgba(71,231,144,.15)}.office-action.daily.available small{color:#56ef9b}.quick-menu,.daily-floating{display:none!important}
-@media(max-width:700px){.market-header{grid-template-columns:56px 1fr auto}.hamburger-button{width:46px;height:44px;padding:0 11px}.office-actions{grid-template-columns:1fr}.parking-slot{width:190px!important;height:270px!important}.market-title span{font-size:11px}.market-title strong{font-size:14px}}
-/* Великий номер усередині паркомісця */
-.parking-slot > small{
+:root {
+  --bg:#061018;
+  --panel:rgba(8,25,35,.94);
+  --panel2:#122c3a;
+  --text:#f7fbff;
+  --muted:#a7b5bf;
+  --blue:#1976d2;
+  --green:#29d67d;
+  --gold:#f3c63f;
+  --danger:#c84843;
+  --map:2600px
+}
+
+* {
+  box-sizing:border-box
+}
+
+html,body {
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#061018;
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+  touch-action:none;
+  overscroll-behavior:none
+}
+
+button,input,textarea {
+  font:inherit
+}
+
+.screen {
+  display:none;
+  width:100%;
+  height:100%
+}
+
+.screen.active {
+  display:block
+}
+
+.hidden {
+  display:none!important
+}
+
+button {
+  cursor:pointer
+}
+
+.loading-screen {
+  background:radial-gradient(circle at 50% 35%,#254a2d,#061018 65%);
+  text-align:center;
+  padding-top:25vh
+}
+
+.loading-screen h1 {
+  font-size:38px;
+  margin:15px
+}
+
+.loading-art {
+  position:relative;
+  height:180px
+}
+
+.market-sign {
+  font-weight:900;
+  font-size:40px
+}
+
+.loader {
+  width:220px;
+  height:8px;
+  background:#17303b;
+  margin:auto;
+  border-radius:20px;
+  overflow:hidden
+}
+
+.loader i {
+  display:block;
+  height:100%;
+  width:60%;
+  background:#28d67d;
+  animation:load 1s infinite alternate
+}
+
+@keyframes load {
+  to {
+    transform:translateX(70%)
+  }
+
+}
+
+.game-screen {
+  position:relative;
+  background:#0c171d
+}
+
+.market-header {
+  position:absolute;
+  z-index:50;
+  top:0;
+  left:0;
+  right:0;
+  height:92px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 14px;
+  background:linear-gradient(180deg,rgba(4,13,18,.9),rgba(4,13,18,.15));
+  pointer-events:none
+}
+
+.market-header>* {
+  pointer-events:auto
+}
+
+.profile-card {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  min-width:210px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(5,22,31,.92);
+  color:#fff;
+  border-radius:14px;
+  padding:8px 12px;
+  text-align:left
+}
+
+.profile-avatar {
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#2d6d93;
+  font-size:28px
+}
+
+.profile-card b {
+  display:block;
+  font-size:17px
+}
+
+.profile-card small {
+  display:block;
+  color:#dce7ec;
+  margin-top:4px
+}
+
+.profile-card em {
+  font-style:normal;
+  color:#ffd253
+}
+
+.market-title {
+  text-align:center;
+  text-shadow:0 2px 4px #000
+}
+
+.market-title strong {
+  display:block;
+  font-size:22px
+}
+
+.market-title span {
+  display:block;
+  font-size:18px;
+  font-weight:700
+}
+
+.build-version {
+  color:#47e792
+}
+
+.header-actions {
+  display:flex;
+  gap:8px
+}
+
+.crystal-button,.inbox-button {
+  height:52px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(5,22,31,.92);
+  color:#fff;
+  font-size:20px;
+  padding:0 16px;
+  position:relative
+}
+
+.inbox-button b {
+  position:absolute;
+  right:-5px;
+  top:-5px;
+  background:#e84b4b;
+  border-radius:20px;
+  padding:2px 6px;
+  font-size:11px
+}
+
+.camera {
+  position:absolute;
+  inset:0;
+  overflow:hidden
+}
+
+.world {
+  position:absolute;
+  width:var(--map);
+  height:var(--map);
+  transform-origin:0 0;
+  will-change:transform;
+  background:#555
+}
+
+.market-ground {
+  position:absolute;
+  left:150px;
+  top:130px;
+  width:2300px;
+  height:2200px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 2px,transparent 2px 80px),linear-gradient(#62666a,#4c5054);
+  border-radius:20px;
+  box-shadow:0 0 0 20px #2f3438,0 0 0 34px #101820
+}
+
+.tree-line {
+  position:absolute;
+  background:repeating-radial-gradient(circle at 30px 30px,#3f7a37 0 18px,#1d4b26 19px 28px,transparent 29px 70px)
+}
+
+.tree-line.top {
+  left:100px;
+  top:0;
+  width:2400px;
+  height:125px
+}
+
+.tree-line.left {
+  left:0;
+  top:80px;
+  width:130px;
+  height:2250px
+}
+
+.tree-line.right {
+  right:0;
+  top:80px;
+  width:130px;
+  height:2250px
+}
+
+.outside-road {
+  position:absolute;
+  left:0;
+  top:2360px;
+  width:2600px;
+  height:240px;
+  background:#333b42;
+  border-top:18px solid #c8c8c8
+}
+
+.outside-road:after {
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:105px;
+  height:8px;
+  background:repeating-linear-gradient(90deg,#ddd 0 80px,transparent 80px 160px)
+}
+
+.market-fence {
+  position:absolute;
+  background:repeating-linear-gradient(90deg,#111 0 7px,#39434b 7px 10px);
+  z-index:3
+}
+
+.fence-top {
+  left:120px;
+  top:115px;
+  width:2360px;
+  height:18px
+}
+
+.fence-left {
+  left:115px;
+  top:115px;
+  width:18px;
+  height:2230px
+}
+
+.fence-right {
+  right:115px;
+  top:115px;
+  width:18px;
+  height:2230px
+}
+
+.fence-bottom-left {
+  left:115px;
+  top:2327px;
+  width:900px;
+  height:18px
+}
+
+.fence-bottom-right {
+  right:115px;
+  top:2327px;
+  width:900px;
+  height:18px
+}
+
+.market-gate {
+  position:absolute;
+  top:2310px;
+  width:300px;
+  height:35px;
+  border:8px solid #151b20;
+  z-index:4
+}
+
+.gate-left {
+  left:1000px
+}
+
+.gate-right {
+  left:1300px
+}
+
+.main-lane {
+  position:absolute;
+  left:1135px;
+  top:440px;
+  width:330px;
+  height:1900px;
+  background:#4b4f53
+}
+
+.lane-markings {
+  position:absolute;
+  left:1294px;
+  top:620px;
+  width:10px;
+  height:1550px;
+  background:repeating-linear-gradient(#e6e2ca 0 55px,transparent 55px 110px);
+  opacity:.75
+}
+
+.crosswalk {
+  position:absolute;
+  left:1140px;
+  top:450px;
+  width:320px;
+  height:90px;
+  background:repeating-linear-gradient(90deg,#eee 0 34px,transparent 34px 55px);
+  opacity:.8
+}
+
+.slot-layer {
+  position:absolute;
+  inset:0
+}
+
+.parking-slot {
+  position:absolute;
+  width:165px;
+  height:250px;
+  transform:translate(-50%,-50%);
+  border:5px solid rgba(255,255,255,.84);
+  border-radius:10px;
+  background:rgba(20,20,20,.08)
+}
+
+.parking-slot>small {
+  position:absolute;
+  left:0;
+  right:0;
+  top:-31px;
+  text-align:center;
+  font-size:22px;
+  color:#fff;
+  text-shadow:0 2px 3px #000
+}
+
+.parking-slot.vip {
+  border-color:#f4cf44;
+  box-shadow:0 0 16px rgba(244,207,68,.45)
+}
+
+.parking-slot.vip>small:after {
+  content:" VIP";
+  color:#f4cf44;
+  font-size:14px
+}
+
+.car {
+  position:absolute;
+  inset:3px;
+  border:0;
+  background:transparent;
+  padding:0
+}
+
+.car img {
+  width:96px;
+  height:176px;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 8px rgba(0,0,0,.55));
+  transition:.18s
+}
+
+.car.nearby img {
+  filter:drop-shadow(0 0 15px #52f09c) drop-shadow(0 10px 8px rgba(0,0,0,.5));
+  transform:scale(1.05)
+}
+
+.car-label {
+  position:absolute;
+  left:50%;
+  bottom:-48px;
+  transform:translateX(-50%);
+  min-width:150px;
+  background:rgba(4,16,23,.92);
+  border-radius:8px;
+  padding:5px 8px;
+  color:#fff;
+  z-index:2
+}
+
+.car-label b,.car-label small {
+  display:block;
+  white-space:nowrap
+}
+
+.car-label small {
+  color:#4fe48f
+}
+
+.online-dot {
+  position:absolute;
+  right:18px;
+  top:25px;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#39e886
+}
+
+.online-dot.offline {
+  background:#72808a
+}
+
+.drive-in {
+  animation:drivein 1.4s ease-out
+}
+
+@keyframes drivein {
+  from {
+    transform:translateY(500px);
+    opacity:.3
+  }
+
+  to {
+    transform:none;
+    opacity:1
+  }
+
+}
+
+.too-far {
+  animation:shake .35s
+}
+
+@keyframes shake {
+  25% {
+    transform:translateX(-8px)
+  }
+
+  75% {
+    transform:translateX(8px)
+  }
+
+}
+
+.office {
+  position:absolute;
+  left:1300px;
+  top:310px;
+  transform:translate(-50%,-50%);
+  width:390px;
+  height:250px;
+  border:0;
+  background:linear-gradient(90deg,#3b2c21 0 22%,#20272c 22% 78%,#3b2c21 78%);
+  border-radius:8px;
+  box-shadow:0 18px 20px rgba(0,0,0,.55);
+  color:#fff;
+  z-index:5
+}
+
+.office-roof {
+  position:absolute;
+  left:-20px;
+  right:-20px;
+  top:-28px;
+  height:55px;
+  background:#343b40;
+  border:5px solid #111
+}
+
+.office-glass {
+  position:absolute;
+  left:95px;
+  top:35px;
+  width:200px;
+  height:120px;
+  background:linear-gradient(135deg,#263b46,#0b161c);
+  border:8px solid #12171b
+}
+
+.office-door {
+  position:absolute;
+  left:172px;
+  bottom:0;
+  width:48px;
+  height:90px;
+  background:#10171c;
+  border:4px solid #789
+}
+
+.office b {
+  position:absolute;
+  left:100px;
+  right:100px;
+  bottom:74px;
+  background:#0f1720;
+  color:#fff;
+  padding:7px;
+  border-radius:4px
+}
+
+.office small {
+  position:absolute;
+  bottom:-28px;
+  left:0;
+  right:0;
+  font-weight:bold
+}
+
+.office-window {
+  display:none
+}
+
+.player {
+  position:absolute;
+  transform:translate(-50%,-82%);
+  z-index:15;
+  text-align:center
+}
+
+.player small {
+  display:block;
+  background:rgba(5,17,23,.85);
+  padding:2px 6px;
+  border-radius:6px;
+  white-space:nowrap
+}
+
+.person-sprite {
+  position:relative;
+  display:block;
+  width:42px;
+  height:70px;
+  margin:auto
+}
+
+.person-sprite:before {
+  content:"";
+  position:absolute;
+  left:11px;
+  top:0;
+  width:20px;
+  height:20px;
+  background:#e7b18d;
+  border:3px solid #422d25;
+  border-radius:50%
+}
+
+.person-sprite i {
+  position:absolute;
+  left:7px;
+  top:21px;
+  width:28px;
+  height:34px;
+  background:#2d8cf0;
+  border:3px solid #14283c;
+  border-radius:8px
+}
+
+.person-sprite b:before,.person-sprite b:after {
+  content:"";
+  position:absolute;
+  top:53px;
+  width:9px;
+  height:18px;
+  background:#192738;
+  border-radius:4px
+}
+
+.person-sprite b:before {
+  left:8px
+}
+
+.person-sprite b:after {
+  right:8px
+}
+
+.remote-player {
+  opacity:.85
+}
+
+.running .person-sprite {
+  animation:bob .25s infinite alternate
+}
+
+@keyframes bob {
+  to {
+    transform:translateY(-4px)
+  }
+
+}
+
+.quick-menu {
+  position:absolute;
+  z-index:45;
+  left:14px;
+  top:112px;
+  width:150px;
+  display:grid;
+  gap:8px
+}
+
+.quick-menu button {
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:52px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(5,22,31,.93);
+  color:#fff;
+  border-radius:10px;
+  padding:8px 10px;
+  text-align:left;
+  font-weight:800
+}
+
+.quick-menu button>span {
+  font-size:13px
+}
+
+.quick-menu button>b {
+  position:absolute;
+  right:-5px;
+  top:-6px;
+  background:#e74949;
+  border-radius:20px;
+  padding:3px 7px
+}
+
+.quick-menu small {
+  color:#4ac5ff
+}
+
+.daily-floating {
+  position:absolute;
+  z-index:45;
+  right:14px;
+  top:105px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(5,22,31,.93);
+  color:#fff;
+  border-radius:12px;
+  padding:8px 12px
+}
+
+.daily-floating span {
+  display:block
+}
+
+.daily-floating b {
+  display:block;
+  margin-top:4px;
+  background:#20b96c;
+  padding:5px;
+  border-radius:7px
+}
+
+.zoom-controls {
+  position:absolute;
+  z-index:50;
+  right:16px;
+  bottom:116px;
+  display:grid;
+  gap:8px
+}
+
+.zoom-controls button,.zoom-controls b {
+  width:58px;
+  height:58px;
+  border:0;
+  border-radius:13px;
+  background:rgba(5,22,31,.94);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-size:30px
+}
+
+.zoom-controls b {
+  height:38px;
+  font-size:13px
+}
+
+.joystick-wrap {
+  position:absolute;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  z-index:48
+}
+
+.joystick-base {
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  background:radial-gradient(circle,#3b4146 0 42%,#151a1e 43% 65%,#050708 66%);
+  border:5px solid #383f45;
+  position:relative
+}
+
+.joystick-stick {
+  position:absolute;
+  width:66px;
+  height:66px;
+  left:37px;
+  top:37px;
+  border-radius:50%;
+  background:linear-gradient(#41474c,#1b1f22);
+  box-shadow:inset 0 0 0 3px #555
+}
+
+.map-help {
+  position:absolute;
+  z-index:40;
+  left:50%;
+  bottom:178px;
+  transform:translateX(-50%);
+  background:rgba(4,16,23,.84);
+  padding:8px 14px;
+  border-radius:9px
+}
+
+.side-menu {
+  position:fixed;
+  inset:0;
+  z-index:100
+}
+
+.side-backdrop {
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.55)
+}
+
+.side-panel {
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:min(340px,88vw);
+  background:#0c202b;
+  padding:24px
+}
+
+.side-panel button {
+  display:block;
+  width:100%;
+  margin:9px 0;
+  padding:14px;
+  background:#173342;
+  color:#fff;
+  border:0;
+  border-radius:12px;
+  text-align:left
+}
+
+.side-close {
+  font-size:26px!important;
+  width:auto!important;
+  margin-left:auto!important
+}
+
+.overlay-screen {
+  position:fixed!important;
+  inset:0;
+  z-index:80;
+  background:#07131b;
+  overflow:auto;
+  padding-bottom:30px
+}
+
+.overlay-screen header {
+  height:72px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 15px;
+  background:#102734
+}
+
+.overlay-screen header button {
+  border:0;
+  background:#1d4052;
+  color:#fff;
+  border-radius:10px;
+  padding:10px
+}
+
+.sell-wizard,.panel {
+  max-width:680px;
+  margin:20px auto;
+  padding:20px
+}
+
+.wizard-step {
+  display:none
+}
+
+.wizard-step.active {
+  display:block
+}
+
+.step-indicator {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:20px
+}
+
+.step-indicator i {
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:#233b48;
+  display:grid;
+  place-items:center;
+  font-style:normal
+}
+
+.step-indicator i.active {
+  background:#2ed77d;
+  color:#07120c
+}
+
+.step-indicator span {
+  width:60px;
+  height:4px;
+  background:#233b48
+}
+
+label {
+  display:block;
+  margin:13px 0;
+  color:#dfe8ed
+}
+
+input,textarea {
+  width:100%;
+  margin-top:7px;
+  padding:13px;
+  border-radius:10px;
+  border:1px solid #34505e;
+  background:#0b1b24;
+  color:#fff
+}
+
+textarea {
+  min-height:120px
+}
+
+.color-picker {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px
+}
+
+.color-picker label {
+  background:#102934;
+  padding:8px;
+  border-radius:8px
+}
+
+.swatch {
+  display:inline-block;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  margin-right:6px
+}
+
+.black {
+  background:#111
+}
+
+.white {
+  background:#fff
+}
+
+.silver {
+  background:#aaa
+}
+
+.red {
+  background:#b22
+}
+
+.blue {
+  background:#25c
+}
+
+.green {
+  background:#286
+}
+
+.primary,.secondary,.danger {
+  border:0;
+  border-radius:11px;
+  padding:13px 17px;
+  font-weight:800
+}
+
+.primary {
+  background:#1976d2;
+  color:#fff
+}
+
+.secondary {
+  background:#294251;
+  color:#fff
+}
+
+.danger {
+  background:#b9433e;
+  color:#fff
+}
+
+.wizard-nav {
+  display:flex;
+  gap:10px
+}
+
+.modal {
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:grid;
+  place-items:center
+}
+
+.modal .backdrop {
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.7)
+}
+
+.modal article {
+  position:relative;
+  width:min(560px,94vw);
+  max-height:90vh;
+  overflow:auto;
+  background:linear-gradient(#102a38,#081820);
+  border:1px solid #39515d;
+  border-radius:16px;
+  padding:20px
+}
+
+.close {
+  position:absolute;
+  right:12px;
+  top:10px;
+  border:0;
+  background:transparent;
+  color:#fff;
+  font-size:28px
+}
+
+.showcase-car {
+  width:160px;
+  height:220px;
+  margin:0 auto;
+  background-position:center;
+  background-size:contain;
+  background-repeat:no-repeat;
+  filter:drop-shadow(0 12px 10px rgba(0,0,0,.55))
+}
+
+.details {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px
+}
+
+.details span {
+  background:#17313e;
+  padding:10px;
+  border-radius:9px
+}
+
+.details b {
+  display:block
+}
+
+.rating-stars button {
+  border:0;
+  background:transparent;
+  color:#f4c63d;
+  font-size:34px
+}
+
+.my-cars-list {
+  display:grid;
+  gap:10px
+}
+
+.my-car-item {
+  display:grid;
+  grid-template-columns:90px 1fr auto;
+  gap:10px;
+  align-items:center;
+  background:#142e3a;
+  padding:10px;
+  border-radius:12px
+}
+
+.my-car-thumb img {
+  width:70px
+}
+
+.my-car-actions {
+  display:grid;
+  gap:6px
+}
+
+.my-car-actions button {
+  border:0;
+  border-radius:8px;
+  padding:8px;
+  color:#fff
+}
+
+.details-btn {
+  background:#1976d2
+}
+
+.remove-car {
+  background:#b9433e
+}
+
+.chat-layout {
+  display:grid;
+  grid-template-columns:280px 1fr;
+  height:calc(100% - 72px)
+}
+
+.conversations {
+  background:#0c202b;
+  overflow:auto
+}
+
+.conversation {
+  width:100%;
+  display:grid;
+  grid-template-columns:42px 1fr auto;
+  gap:8px;
+  padding:12px;
+  border:0;
+  border-bottom:1px solid #203845;
+  background:transparent;
+  color:#fff;
+  text-align:left
+}
+
+.conversation span b,.conversation span small,.conversation span em {
+  display:block
+}
+
+.chat-panel {
+  padding:14px
+}
+
+.chat-messages {
+  height:calc(100vh - 250px);
+  overflow:auto
+}
+
+.bubble {
+  max-width:75%;
+  padding:9px 12px;
+  margin:8px;
+  border-radius:12px;
+  background:#17323f
+}
+
+.bubble.mine {
+  margin-left:auto;
+  background:#1769aa
+}
+
+.chat-compose {
+  display:flex;
+  gap:8px
+}
+
+.toast {
+  position:fixed;
+  z-index:200;
+  left:50%;
+  bottom:190px;
+  transform:translateX(-50%);
+  background:#07161e;
+  color:#fff;
+  padding:12px 18px;
+  border-radius:10px
+}
+
+.empty-list {
+  padding:25px;
+  text-align:center;
+  color:#aebbc3
+}
+
+@media(max-width:700px) {
+  .market-header {
+    height:82px;
+    padding:8px
+  }
+
+  .profile-card {
+    min-width:0;
+    width:140px;
+    padding:6px
+  }
+
+  .profile-avatar {
+    width:36px;
+    height:36px;
+    font-size:20px
+  }
+
+  .profile-card b {
+    font-size:13px
+  }
+
+  .profile-card small {
+    font-size:10px
+  }
+
+  .market-title strong {
+    font-size:15px
+  }
+
+  .market-title span {
+    font-size:13px
+  }
+
+  .market-title small {
+    font-size:10px
+  }
+
+  .crystal-button,.inbox-button {
+    height:42px;
+    padding:0 10px;
+    font-size:15px
+  }
+
+  .quick-menu {
+    top:90px;
+    left:8px;
+    width:116px
+  }
+
+  .quick-menu button {
+    min-height:44px;
+    padding:6px;
+    font-size:12px
+  }
+
+  .quick-menu button>span {
+    font-size:10px
+  }
+
+  .daily-floating {
+    top:88px;
+    right:8px;
+    font-size:11px
+  }
+
+  .map-help {
+    display:none
+  }
+
+  .joystick-base {
+    width:126px;
+    height:126px
+  }
+
+  .joystick-stick {
+    left:30px;
+    top:30px
+  }
+
+  .zoom-controls {
+    bottom:92px
+  }
+
+  .zoom-controls button {
+    width:48px;
+    height:48px
+  }
+
+  .chat-layout {
+    grid-template-columns:1fr
+  }
+
+  .conversations {
+    max-height:240px
+  }
+
+  .my-car-item {
+    grid-template-columns:70px 1fr
+  }
+
+  .my-car-actions {
+    grid-column:1/-1;
+    grid-template-columns:1fr 1fr
+  }
+
+}
+
+/* AutoBazar v6.1 — 50 великих місць, компактне меню, бонус в офісі */ .hamburger-button {
+  width:52px;
+  height:48px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;
+  background:rgba(5,22,31,.95);
+  display:grid;
+  align-content:center;
+  gap:6px;
+  padding:0 13px
+}
+
+.hamburger-button span {
+  display:block;
+  height:3px;
+  border-radius:4px;
+  background:#fff
+}
+
+.market-header {
+  grid-template-columns:64px 1fr auto
+}
+
+.side-panel h2 {
+  margin:4px 0 22px
+}
+
+.menu-dot {
+  display:inline-block;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#42ef8c;
+  box-shadow:0 0 10px #42ef8c;
+  margin-left:8px
+}
+
+.parking-slot {
+  width:190px!important;
+  height:270px!important;
+  border-width:6px!important;
+  border-radius:12px!important
+}
+
+.parking-slot>small {
+  top:-37px!important;
+  font-size:24px!important
+}
+
+.parking-slot.vip>small:after {
+  content:" VIP"!important
+}
+
+.car img {
+  width:122px!important;
+  height:208px!important
+}
+
+.car-label {
+  bottom:-54px!important;
+  min-width:176px!important;
+  padding:6px 10px!important
+}
+
+.main-lane {
+  left:1180px!important;
+  width:240px!important
+}
+
+.side-lane {
+  position:absolute;
+  top:760px;
+  bottom:220px;
+  width:120px;
+  background:rgba(35,39,42,.82);
+  border-left:7px solid rgba(255,255,255,.65);
+  border-right:7px solid rgba(255,255,255,.65);
+  z-index:1
+}
+
+.lane-left {
+  left:85px
+}
+
+.lane-right {
+  right:85px
+}
+
+.parking-label {
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:3;
+  color:rgba(255,255,255,.75);
+  font-weight:900;
+  letter-spacing:5px;
+  text-shadow:0 2px 4px #000
+}
+
+.vip-label {
+  top:735px;
+  color:#ffe26a
+}
+
+.regular-label {
+  top:785px
+}
+
+.office {
+  top:330px!important
+}
+
+.office-actions {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:18px
+}
+
+.office-action {
+  border:1px solid #35515f;
+  border-radius:14px;
+  background:#142e3a;
+  color:#fff;
+  padding:16px;
+  text-align:left;
+  min-height:112px
+}
+
+.office-action span,.office-action b,.office-action small {
+  display:block
+}
+
+.office-action span {
+  font-size:30px
+}
+
+.office-action b {
+  margin:7px 0 3px
+}
+
+.office-action small {
+  color:#b8c8cf
+}
+
+.office-action.daily.available {
+  border-color:#47e790;
+  box-shadow:0 0 0 2px rgba(71,231,144,.15)
+}
+
+.office-action.daily.available small {
+  color:#56ef9b
+}
+
+.quick-menu,.daily-floating {
+  display:none!important
+}
+
+@media(max-width:700px) {
+  .market-header {
+    grid-template-columns:56px 1fr auto
+  }
+
+  .hamburger-button {
+    width:46px;
+    height:44px;
+    padding:0 11px
+  }
+
+  .office-actions {
+    grid-template-columns:1fr
+  }
+
+  .parking-slot {
+    width:190px!important;
+    height:270px!important
+  }
+
+  .market-title span {
+    font-size:11px
+  }
+
+  .market-title strong {
+    font-size:14px
+  }
+
+}
+
+/* Великий номер усередині паркомісця */ .parking-slot > small {
   position:absolute!important;
   left:0!important;
   right:0!important;
   top:50%!important;
   bottom:auto!important;
   transform:translateY(-50%)!important;
-
   text-align:center!important;
   font-size:58px!important;
   font-weight:900!important;
   line-height:1!important;
-
   color:rgba(255,255,255,.26)!important;
   text-shadow:0 3px 5px rgba(0,0,0,.55)!important;
-
   pointer-events:none!important;
   z-index:0!important;
 }
 
-/* Машина і табличка повинні бути над номером */
-.parking-slot .car{
+/* Машина і табличка повинні бути над номером */ .parking-slot .car {
   z-index:1;
 }
 
-/* VIP напис залишається біля номера */
-.parking-slot.vip > small:after{
+/* VIP напис залишається біля номера */ .parking-slot.vip > small:after {
   display:block;
   margin-top:8px;
   font-size:16px!important;
+}
+
+/* ============================================================
+   ПАРКОМІСЦЯ: ВЕЛИКІ НОМЕРИ ВСЕРЕДИНІ
+   ============================================================ */
+.parking-slot > small {
+  position: absolute !important;
+  top: 50% !important;
+  right: 0 !important;
+  bottom: auto !important;
+  left: 0 !important;
+  z-index: 0 !important;
+  transform: translateY(-50%) !important;
+  color: rgba(255, 255, 255, 0.22) !important;
+  font-size: 58px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-shadow: 0 3px 5px rgba(0, 0, 0, 0.55) !important;
+  pointer-events: none !important;
+}
+
+.parking-slot .car {
+  z-index: 1;
 }
