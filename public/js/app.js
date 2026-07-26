@@ -1,154 +1,299 @@
-const socket=io();
-const tg=window.Telegram?.WebApp;
-tg?.ready();tg?.expand();tg?.disableVerticalSwipes?.();
+/* ========================================
+   AutoBazar — основна логіка клієнта
+   Відформатовано без зміни функціональності
+======================================== */
 
-const MAP_SIZE=2600, CENTER=1300, INTERACTION_RADIUS=175, VIP_PRICE=10, VIP_SLOTS=5, TOTAL_SLOTS=50;
-const COLOR_NAMES={black:'Чорний',white:'Білий',silver:'Срібний',red:'Червоний',blue:'Синій',green:'Зелений',yellow:'Жовтий',purple:'Фіолетовий'};
-let user=null,listings=[],messages=[],players=[],selected=null,activeChat=null,pos={x:1300,y:760},crystals=0,runStopTimer=null,joystickFrame=null,pendingSale=null,zoom=.5,dailyBonusAvailable=false,lastCreatedListingId=null;
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function show(id){$$('.screen').forEach(x=>x.classList.toggle('active',x.id===id))}
-function toast(text){$('#toast').textContent=text;$('#toast').classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toast').classList.add('hidden'),2600)}
-function telegramDisplayName(){const u=tg?.initDataUnsafe?.user;return [u?.first_name,u?.last_name].filter(Boolean).join(' ')||u?.username||'Гравець'}
-function demo(){let id=localStorage.getItem('abId');if(!id){id='demo-'+crypto.randomUUID();localStorage.setItem('abId',id)}return{id,name:telegramDisplayName()}}
+/* 1. Підключення та глобальні налаштування */
+const socket = io();
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+tg?.disableVerticalSwipes?.();
+const MAP_SIZE = 2600, CENTER = 1300, INTERACTION_RADIUS = 175, VIP_PRICE = 10, VIP_SLOTS = 5, TOTAL_SLOTS = 50;
+const COLOR_NAMES = { black: 'Чорний', white: 'Білий', silver: 'Срібний', red: 'Червоний', blue: 'Синій', green: 'Зелений', yellow: 'Жовтий', purple: 'Фіолетовий' };
+let user = null, listings = [], messages = [], players = [], selected = null, activeChat = null, pos = { x: 1300, y: 760 }, crystals = 0, runStopTimer = null, joystickFrame = null, pendingSale = null, zoom = .5, dailyBonusAvailable = false, lastCreatedListingId = null;
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+function show(id) { $$('.screen').forEach(x => x.classList.toggle('active', x.id === id)); }
+function toast(text) { $('#toast').textContent = text; $('#toast').classList.remove('hidden'); clearTimeout(toast.t); toast.t = setTimeout(() => $('#toast').classList.add('hidden'), 2600); }
+function telegramDisplayName() { const u = tg?.initDataUnsafe?.user; return [u?.first_name, u?.last_name].filter(Boolean).join(' ') || u?.username || 'Гравець'; }
+function demo() { let id = localStorage.getItem('abId'); if (!id) {
+    id = 'demo-' + crypto.randomUUID();
+    localStorage.setItem('abId', id);
+} return { id, name: telegramDisplayName() }; }
 
-function marketplaceSlots(){
-  const result=[];
-  let id=1;
-  // 5 великих VIP-місць прямо перед офісом
-  for(const x of [660,980,1300,1620,1940]) result.push({id:id++,x,y:610,rotation:0});
-  // 45 повнорозмірних місць: 5 рядів по 9
-  const xs=[340,580,820,1060,1300,1540,1780,2020,2260];
-  for(const y of [930,1240,1550,1860,2170]){
-    for(const x of xs) result.push({id:id++,x,y,rotation:0});
-  }
-  return result;
-}
-const slots=marketplaceSlots();
-function carImage(color){return `/assets/cars/${COLOR_NAMES[color]?color:'black'}.png`}
-function renderSlots(){
-  const layer=$('#slotLayer');layer.innerHTML='';
-  slots.forEach(s=>{
-    const spot=document.createElement('div');
-    spot.className=`parking-slot ${s.id<=VIP_SLOTS?'vip':''}`;
-    spot.dataset.slotId=s.id;spot.style.left=s.x+'px';spot.style.top=s.y+'px';
-    spot.innerHTML=`<small>${s.id}</small>`;
-    const l=listings.find(x=>Number(x.slotId??x.spot)===s.id&&x.status!=='removed');
-    if(l){
-      const car=document.createElement('button');car.type='button';car.className='car';car.dataset.listingId=l.id;
-      car.innerHTML=`<span class="car-label"><b>${esc(l.brand)} ${esc(l.model)}</b><small>$${Number(l.price).toLocaleString()}</small></span><img src="${carImage(l.color)}" alt="${esc(l.brand)} ${esc(l.model)}"><em class="online-dot ${l.sellerOnline?'':'offline'}"></em>`;
-      if(l.id===lastCreatedListingId)car.classList.add('drive-in');
-      car.onclick=()=>tryOpenCar(l,car);spot.appendChild(car);
+/* 2. Карта, паркомісця та автомобілі */
+function marketplaceSlots() {
+    const result = [];
+    let id = 1;
+    // 5 великих VIP-місць прямо перед офісом
+    for (const x of [660, 980, 1300, 1620, 1940])
+        result.push({ id: id++, x, y: 610, rotation: 0 });
+    // 45 повнорозмірних місць: 5 рядів по 9
+    const xs = [340, 580, 820, 1060, 1300, 1540, 1780, 2020, 2260];
+    for (const y of [930, 1240, 1550, 1860, 2170]) {
+        for (const x of xs)
+            result.push({ id: id++, x, y, rotation: 0 });
     }
-    layer.appendChild(spot);
-  });
-  requestAnimationFrame(updateNearbyCars);
+    return result;
 }
-function renderRemotePlayers(){const layer=$('#remotePlayers');if(!layer||!user)return;layer.innerHTML='';players.filter(p=>String(p.id)!==String(user.id)).forEach(p=>{const el=document.createElement('div');el.className=`player remote-player ${p.moving?'running':''} ${p.faceLeft?'face-left':''}`;el.style.left=Number(p.x)+'px';el.style.top=Number(p.y)+'px';el.innerHTML=`<span class="person-sprite"><i></i><b></b></span><small>${esc(p.name||'Гравець')}</small>`;layer.appendChild(el)})}
-function updateCamera(){const camera=$('#camera'),world=$('#world');if(!camera||!world)return;const w=camera.clientWidth,h=camera.clientHeight;const tx=Math.round(w/2-pos.x*zoom),ty=Math.round(h/2-pos.y*zoom);world.style.transform=`translate3d(${tx}px,${ty}px,0) scale(${zoom})`;$('#player').style.left=pos.x+'px';$('#player').style.top=pos.y+'px';$('#zoomValue').textContent=Math.round(zoom*100)+'%'}
-function render(){if(!user)return;$('#crystalCount').textContent=crystals;$('#myCarsCount').textContent=myActiveCars().length;renderSlots();renderRemotePlayers();renderConversations();updateCamera()}
-
-socket.emit('auth',{initData:tg?.initData||'',demoUser:demo()});
-socket.on('auth:ok',d=>{
-  user=d.user;
-  listings=d.listings||[];
-  messages=d.messages||[];
-  players=d.players||[];
-  crystals=Number(d.crystals||0);
-  dailyBonusAvailable=!!d.dailyBonusAvailable;
-
-  const officeBonusDot=$('#officeBonusDot');
-  if(officeBonusDot)officeBonusDot.classList.toggle('hidden',!dailyBonusAvailable);
-
-  updateOfficeBonusState();
-
-  const displayName=user.name||telegramDisplayName();
-  const playerName=$('#playerName');
-  const headerPlayerName=$('#headerPlayerName');
-  if(playerName)playerName.textContent=displayName;
-  if(headerPlayerName)headerPlayerName.textContent=displayName;
-
-  const own=listings.find(l=>String(l.sellerId)===String(user.id));
-  const headerRating=$('#headerRating');
-  if(headerRating)headerRating.textContent=Number(own?.sellerRating||0).toFixed(1);
-
-  show('marketScreen');
-
-requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    updateCamera();
-    updateNearbyCars();
-  });
-});
-
-emitPlayerUpdate(false);
-});
-socket.on('auth:error',toast);socket.on('listing:error',toast);
-socket.on('vip:purchase-required',d=>{pendingSale=d?.payload||pendingSale;$('#vipModal').classList.remove('hidden')});
-socket.on('balance:update',d=>{crystals=Number(d.crystals||0);$('#crystalCount').textContent=crystals});
-socket.on('listing:created',x=>{pendingSale=null;lastCreatedListingId=x.id;listings.push(x);show('marketScreen');resetWizard();toast(`Авто поставлено на місце №${x.slotId??x.spot}`);render()});
-socket.on('world:listings',x=>{listings=x||[];renderSlots();if(user){$('#myCarsCount').textContent=myActiveCars().length;if(!$('#myCarsModal').classList.contains('hidden'))renderMyCars()}});
-socket.on('world:players',x=>{players=x||[];renderRemotePlayers()});
-socket.on('player:updated',p=>{const i=players.findIndex(x=>String(x.id)===String(p.id));i>=0?players[i]=p:players.push(p);renderRemotePlayers()});
-socket.on('player:left',p=>{players=players.filter(x=>String(x.id)!==String(p.id));renderRemotePlayers()});
-socket.on('chat:new',m=>{messages.push(m);toast(`Нове повідомлення від ${m.fromName}`);renderConversations();if(activeChat&&sameChatMessage(m,activeChat)){markChatRead();renderChat()}});
-socket.on('chat:sent',m=>{messages.push(m);$('#chatText').value='';renderConversations();renderChat()});socket.on('daily:result',d=>{if(d.ok){crystals=Number(d.crystals);dailyBonusAvailable=false;$('#officeBonusDot').classList.add('hidden');updateOfficeBonusState();$('#crystalCount').textContent=crystals;toast(`Щоденний бонус: +${d.reward} 💎`)}else toast(d.message)});socket.on('seller:rating-updated',d=>{listings.forEach(l=>{if(String(l.sellerId)===String(d.sellerId)){l.sellerRating=d.rating;l.ratingCount=d.ratingCount}});if(selected&&String(selected.sellerId)===String(d.sellerId))updateRatingPanel(selected);renderSlots()});
-
-function distanceToElement(el){const r=el.getBoundingClientRect(),c=$('#camera').getBoundingClientRect();return Math.hypot(r.left+r.width/2-(c.left+c.width/2),r.top+r.height/2-(c.top+c.height/2))}
-function tryOpenCar(l,car){if(distanceToElement(car)>INTERACTION_RADIUS){car.classList.add('too-far');setTimeout(()=>car.classList.remove('too-far'),450);return toast('Підійдіть ближче до автомобіля')}openCar(l)}
-function updateNearbyCars(){$$('.car').forEach(c=>c.classList.toggle('nearby',distanceToElement(c)<=INTERACTION_RADIUS));const nearOffice=distanceToElement($('#office'))<=190;$('#office').style.filter=nearOffice?'drop-shadow(0 0 18px #58ff9a)':''}
-function updateRatingPanel(l){const avg=Number(l.sellerRating||0),count=Number(l.ratingCount||0);$('#mRating').textContent=count?`${avg.toFixed(1)} ★ · ${count} оцінок`:'Новий продавець';const mine=String(l.sellerId)===String(user.id);$('#ratingStars').innerHTML=mine?'<small>Власний профіль</small>':[1,2,3,4,5].map(n=>`<button type="button" data-rate="${n}" title="${n} з 5">★</button>`).join('');$$('#ratingStars [data-rate]').forEach(b=>b.onclick=()=>socket.emit('seller:rate',{sellerId:l.sellerId,rating:Number(b.dataset.rate)}))}
-function openCar(l){selected=l;const slot=Number(l.slotId??l.spot);$('#mSlot').textContent=`${slot<=VIP_SLOTS?'VIP · ':''}місце №${slot}`;$('#mTitle').textContent=`${l.brand} ${l.model}`;$('#mYear').textContent=l.year;$('#mPrice').textContent='$'+Number(l.price).toLocaleString();$('#mColor').textContent=COLOR_NAMES[l.color]||l.color||'Не вказано';$('#mSeller').textContent=l.sellerName;$('#mDescription').textContent=l.description||'Без опису';updateRatingPanel(l);$('#showcaseCar').className='showcase-car';$('#showcaseCar').style.backgroundImage=`url(${carImage(l.color)})`;const mine=String(l.sellerId)===String(user.id);$('#openChatBtn').classList.toggle('hidden',mine);$('#removeBtn').classList.toggle('hidden',!mine);$('#carModal').classList.remove('hidden')}
-function closeCarModal(){$('#carModal').classList.add('hidden');selected=null}
-
-function updateOfficeBonusState(){const text=$('#officeDailyText'),btn=$('#officeDaily');if(!text||!btn)return;text.textContent=dailyBonusAvailable?'Нагорода готова — забрати':'Сьогодні вже отримано';btn.classList.toggle('available',dailyBonusAvailable)}
-function showOffice(){updateOfficeBonusState();$('#officeModal').classList.remove('hidden')}
-function closeOffice(){$('#officeModal').classList.add('hidden')}
-function openOffice(){if(distanceToElement($('#office'))>235)return toast('Підійдіть ближче до офісу');showOffice()}
-function openMenu(){$('#gameMenu').classList.remove('hidden')}
-function closeMenu(){$('#gameMenu').classList.add('hidden')}
-$('#office').onclick=openOffice;$('#menuBtn').onclick=openMenu;$$('[data-close-menu]').forEach(x=>x.onclick=closeMenu);
-$('#menuOffice').onclick=()=>{closeMenu();showOffice()};$('#menuSell').onclick=()=>{closeMenu();show('sellScreen')};$('#menuMyCars').onclick=()=>{closeMenu();openMyCars()};$('#menuDeveloper').onclick=()=>{closeMenu();show('developerScreen')};$('#menuChats').onclick=()=>{closeMenu();showInbox()};$$('.back-market').forEach(x=>x.onclick=()=>show('marketScreen'));
-$$('.close-office-modal').forEach(x=>x.onclick=closeOffice);$('#officeDaily').onclick=()=>socket.emit('daily:claim');$('#officeSell').onclick=()=>{closeOffice();show('sellScreen')};$('#officeMyCars').onclick=()=>{closeOffice();openMyCars()};$('#officeRating').onclick=()=>toast('Рейтинг продавців показується в картці автомобіля');
-
-function setStep(step){$$('.wizard-step').forEach(x=>x.classList.toggle('active',Number(x.dataset.step)===step));$$('.step-indicator i').forEach((x,i)=>x.classList.toggle('active',i<step))}
-$$('.next-step').forEach(btn=>btn.onclick=()=>{const current=btn.closest('.wizard-step'),inputs=[...current.querySelectorAll('input[required],textarea[required]')];if(inputs.some(x=>!x.reportValidity()))return;setStep(Number(current.dataset.step)+1)});$$('.prev-step').forEach(btn=>btn.onclick=()=>setStep(Number(btn.closest('.wizard-step').dataset.step)-1));
-function resetWizard(){$('#sellForm').reset();setStep(1)}
-$('#sellForm').onsubmit=e=>{e.preventDefault();const payload=Object.fromEntries(new FormData(e.currentTarget).entries());payload.requestVip=payload.requestVip==='true';pendingSale=payload;socket.emit('listing:create',payload)};
-$('#continueFreeBtn').onclick=()=>{if(!pendingSale)return;pendingSale.requestVip=false;$('#vipModal').classList.add('hidden');socket.emit('listing:create',pendingSale)};
-$('#buyVipBtn').onclick=()=>{socket.emit('vip:buy-crystals');toast('Покупка кристалів буде підключена через Telegram Payments')};$$('.close-vip-modal').forEach(x=>x.onclick=()=>$('#vipModal').classList.add('hidden'));
-
-function myActiveCars(){return listings.filter(l=>String(l.sellerId)===String(user?.id)&&l.status!=='removed')}
-function renderMyCars(){
-  const cars=myActiveCars(),box=$('#myCarsList');
-  $('#myCarsCount').textContent=cars.length;
-  if(!cars.length){box.innerHTML='<div class="empty-list">Ви ще не виставили жодного автомобіля.</div>';return}
-  box.innerHTML=cars.map(l=>`<div class="my-car-item" data-id="${esc(l.id)}"><div class="my-car-thumb"><img src="${carImage(l.color)}" alt="${esc(l.brand)}"></div><div><h3>${esc(l.brand)} ${esc(l.model)}</h3><p>$${Number(l.price).toLocaleString()} · місце №${Number(l.slotId??l.spot)}</p><p>На продажу</p></div><div class="my-car-actions"><button class="details-btn" data-details="${esc(l.id)}">Деталі</button><button class="remove-car" data-remove="${esc(l.id)}">Зняти</button></div></div>`).join('');
-  box.querySelectorAll('[data-details]').forEach(b=>b.onclick=()=>{const l=listings.find(x=>x.id===b.dataset.details);if(l){closeMyCars();openCar(l)}});
-  box.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('Зняти це авто з продажу?')){socket.emit('listing:remove',b.dataset.remove);toast('Оголошення знято')}});
+const slots = marketplaceSlots();
+function carImage(color) { return `/assets/cars/${COLOR_NAMES[color] ? color : 'black'}.png`; }
+function renderSlots() {
+    const layer = $('#slotLayer');
+    layer.innerHTML = '';
+    slots.forEach(s => {
+        const spot = document.createElement('div');
+        spot.className = `parking-slot ${s.id <= VIP_SLOTS ? 'vip' : ''}`;
+        spot.dataset.slotId = s.id;
+        spot.style.left = s.x + 'px';
+        spot.style.top = s.y + 'px';
+        spot.innerHTML = `<small>${s.id}</small>`;
+        const l = listings.find(x => Number(x.slotId ?? x.spot) === s.id && x.status !== 'removed');
+        if (l) {
+            const car = document.createElement('button');
+            car.type = 'button';
+            car.className = 'car';
+            car.dataset.listingId = l.id;
+            car.innerHTML = `<span class="car-label"><b>${esc(l.brand)} ${esc(l.model)}</b><small>$${Number(l.price).toLocaleString()}</small></span><img src="${carImage(l.color)}" alt="${esc(l.brand)} ${esc(l.model)}"><em class="online-dot ${l.sellerOnline ? '' : 'offline'}"></em>`;
+            if (l.id === lastCreatedListingId)
+                car.classList.add('drive-in');
+            car.onclick = () => tryOpenCar(l, car);
+            spot.appendChild(car);
+        }
+        layer.appendChild(spot);
+    });
+    requestAnimationFrame(updateNearbyCars);
 }
-function openMyCars(){renderMyCars();$('#myCarsModal').classList.remove('hidden')}
-function closeMyCars(){$('#myCarsModal').classList.add('hidden')}
-$$('.close-my-cars').forEach(x=>x.onclick=closeMyCars);
-$('#addAnotherCar').onclick=()=>{closeMyCars();show('sellScreen')};
-$('#sendDeveloper').onclick=()=>{const text=$('#developerText').value.trim();if(!text)return toast('Напишіть повідомлення');const username='s_5994';const url=`https://t.me/${username}?text=${encodeURIComponent(text)}`;tg?.openTelegramLink?tg.openTelegramLink(url):window.open(url,'_blank')};
 
-function conversationKey(m){const partner=String(m.fromUserId)===String(user.id)?String(m.toUserId):String(m.fromUserId);return `${m.listingId}|${partner}`}
-function sameChatMessage(m,c){return m.listingId===c.listingId&&(String(m.fromUserId)===c.partnerId||String(m.toUserId)===c.partnerId)}
-function getConversations(){const map=new Map();messages.forEach(m=>{const partnerId=String(m.fromUserId)===String(user.id)?String(m.toUserId):String(m.fromUserId),partnerName=String(m.fromUserId)===String(user.id)?(m.toName||'Користувач'):m.fromName,key=`${m.listingId}|${partnerId}`,old=map.get(key);const conv={key,listingId:m.listingId,listingTitle:m.listingTitle||'Автомобіль',partnerId,partnerName,last:m,unread:messages.filter(x=>x.listingId===m.listingId&&String(x.fromUserId)===partnerId&&String(x.toUserId)===String(user.id)&&!x.read).length};if(!old||new Date(m.createdAt)>new Date(old.last.createdAt))map.set(key,conv)});return [...map.values()].sort((a,b)=>new Date(b.last.createdAt)-new Date(a.last.createdAt))}
-function renderConversations(){if(!user)return;const convs=getConversations(),box=$('#conversations'),unread=messages.filter(m=>String(m.toUserId)===String(user.id)&&!m.read).length;$('#badge').textContent=unread;$('#badge').classList.toggle('hidden',!unread);box.innerHTML=convs.length?'':'<div class="empty-list">Повідомлень ще немає</div>';convs.forEach(c=>{const b=document.createElement('button');b.className=`conversation ${activeChat?.key===c.key?'active':''}`;b.innerHTML=`<span class="avatar">${esc(c.partnerName[0]||'?')}</span><span><b>${esc(c.partnerName)}</b><small>${esc(c.listingTitle)}</small><em>${esc(c.last.text)}</em></span>${c.unread?`<i>${c.unread}</i>`:''}`;b.onclick=()=>openConversation(c);box.appendChild(b)})}
-function showInbox(){activeChat=null;$('#chatActive').classList.add('hidden');$('#chatEmpty').classList.remove('hidden');renderConversations();show('inboxScreen')}
-function openConversation(c){activeChat=c;show('inboxScreen');markChatRead();renderConversations();renderChat()}
-function markChatRead(){if(!activeChat)return;messages.forEach(m=>{if(m.listingId===activeChat.listingId&&String(m.fromUserId)===activeChat.partnerId&&String(m.toUserId)===String(user.id))m.read=true});socket.emit('chat:read',{listingId:activeChat.listingId,partnerId:activeChat.partnerId})}
-function renderChat(){if(!activeChat)return;$('#chatEmpty').classList.add('hidden');$('#chatActive').classList.remove('hidden');$('#chatName').textContent=activeChat.partnerName;$('#chatCar').textContent=activeChat.listingTitle;const arr=messages.filter(m=>sameChatMessage(m,activeChat)).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt)),box=$('#chatMessages');box.innerHTML='';arr.forEach(m=>{const mine=String(m.fromUserId)===String(user.id),d=document.createElement('div');d.className=`bubble ${mine?'mine':'theirs'}`;d.innerHTML=`<p>${esc(m.text)}</p><small>${new Date(m.createdAt).toLocaleString('uk-UA',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</small>`;box.appendChild(d)});requestAnimationFrame(()=>box.scrollTop=box.scrollHeight)}
-function startChatWithListing(l){const existing=getConversations().find(c=>c.listingId===l.id&&c.partnerId===String(l.sellerId));activeChat=existing||{key:`${l.id}|${l.sellerId}`,listingId:l.id,listingTitle:`${l.brand} ${l.model}`,partnerId:String(l.sellerId),partnerName:l.sellerName};closeCarModal();openConversation(activeChat)}
-$('#inboxBtn').onclick=showInbox;$('#backMarket').onclick=()=>show('marketScreen');$('#closeChat').onclick=()=>{activeChat=null;$('#chatActive').classList.add('hidden');$('#chatEmpty').classList.remove('hidden');renderConversations()};$('#sendChat').onclick=()=>{const text=$('#chatText').value.trim();if(activeChat&&text)socket.emit('chat:send',{listingId:activeChat.listingId,toUserId:activeChat.partnerId,text})};$('#chatText').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#sendChat').click()}});$('#openChatBtn').onclick=()=>selected&&startChatWithListing(selected);$('#removeBtn').onclick=()=>{if(selected){socket.emit('listing:remove',selected.id);closeCarModal();toast('Оголошення знято')}};$$('.close-car-modal').forEach(x=>x.onclick=closeCarModal);
+/* 3. Гравці та камера */
+function renderRemotePlayers() { const layer = $('#remotePlayers'); if (!layer || !user)
+    return; layer.innerHTML = ''; players.filter(p => String(p.id) !== String(user.id)).forEach(p => { const el = document.createElement('div'); el.className = `player remote-player ${p.moving ? 'running' : ''} ${p.faceLeft ? 'face-left' : ''}`; el.style.left = Number(p.x) + 'px'; el.style.top = Number(p.y) + 'px'; el.innerHTML = `<span class="person-sprite"><i></i><b></b></span><small>${esc(p.name || 'Гравець')}</small>`; layer.appendChild(el); }); }
+function updateCamera() { const camera = $('#camera'), world = $('#world'); if (!camera || !world)
+    return; const w = camera.clientWidth, h = camera.clientHeight; const tx = Math.round(w / 2 - pos.x * zoom), ty = Math.round(h / 2 - pos.y * zoom); world.style.transform = `translate3d(${tx}px,${ty}px,0) scale(${zoom})`; $('#player').style.left = pos.x + 'px'; $('#player').style.top = pos.y + 'px'; $('#zoomValue').textContent = Math.round(zoom * 100) + '%'; }
+function render() { if (!user)
+    return; $('#crystalCount').textContent = crystals; $('#myCarsCount').textContent = myActiveCars().length; renderSlots(); renderRemotePlayers(); renderConversations(); updateCamera(); }
 
-let lastPlayerEmit=0;function emitPlayerUpdate(moving){if(!user)return;const now=Date.now();if(moving&&now-lastPlayerEmit<80)return;lastPlayerEmit=now;socket.emit('player:update',{x:pos.x,y:pos.y,moving:!!moving,faceLeft:$('#player')?.classList.contains('face-left')||false})}
-function setRunning(dx=0){const p=$('#player');p.classList.add('running');if(dx<-.02)p.classList.add('face-left');if(dx>.02)p.classList.remove('face-left');clearTimeout(runStopTimer);runStopTimer=setTimeout(stopRunning,140)}
-function stopRunning(){$('#player')?.classList.remove('running');emitPlayerUpdate(false)}
-function move(dx,dy){pos.x=Math.max(45,Math.min(MAP_SIZE-45,pos.x+dx));pos.y=Math.max(70,Math.min(MAP_SIZE-45,pos.y+dy));updateCamera();if(Math.abs(dx)+Math.abs(dy)>.01)setRunning(dx);emitPlayerUpdate(true);updateNearbyCars()}
-window.onkeydown=e=>{const k={ArrowUp:[0,-10],w:[0,-10],ArrowDown:[0,10],s:[0,10],ArrowLeft:[-10,0],a:[-10,0],ArrowRight:[10,0],d:[10,0]};if(k[e.key]){e.preventDefault();move(...k[e.key])}};window.addEventListener('keyup',stopRunning);window.addEventListener('resize',updateCamera);
-const base=$('#joystickBase'),stick=$('#joystickStick');let joy={active:false,x:0,y:0,pointerId:null};function updateJoystick(e){const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.34,len=Math.hypot(dx,dy)||1;if(len>max){dx=dx/len*max;dy=dy/len*max}joy.x=dx/max;joy.y=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`}function joystickLoop(){if(!joy.active)return;move(joy.x*5.5,joy.y*5.5);joystickFrame=requestAnimationFrame(joystickLoop)}function stopJoystick(){joy.active=false;joy.x=joy.y=0;stick.style.transform='translate(0,0)';if(joystickFrame)cancelAnimationFrame(joystickFrame);stopRunning()}base.addEventListener('pointerdown',e=>{e.preventDefault();joy.active=true;joy.pointerId=e.pointerId;base.setPointerCapture(e.pointerId);updateJoystick(e);joystickLoop()});base.addEventListener('pointermove',e=>{if(joy.active&&e.pointerId===joy.pointerId){e.preventDefault();updateJoystick(e)}});base.addEventListener('pointerup',stopJoystick);base.addEventListener('pointercancel',stopJoystick);document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});document.addEventListener('dblclick',e=>e.preventDefault());
+/* 4. Socket.IO: авторизація та події сервера */
+socket.emit('auth', { initData: tg?.initData || '', demoUser: demo() });
+socket.on('auth:ok', d => {
+    user = d.user;
+    listings = d.listings || [];
+    messages = d.messages || [];
+    players = d.players || [];
+    crystals = Number(d.crystals || 0);
+    dailyBonusAvailable = !!d.dailyBonusAvailable;
+    const officeBonusDot = $('#officeBonusDot');
+    if (officeBonusDot)
+        officeBonusDot.classList.toggle('hidden', !dailyBonusAvailable);
+    updateOfficeBonusState();
+    const displayName = user.name || telegramDisplayName();
+    const playerName = $('#playerName');
+    const headerPlayerName = $('#headerPlayerName');
+    if (playerName)
+        playerName.textContent = displayName;
+    if (headerPlayerName)
+        headerPlayerName.textContent = displayName;
+    const own = listings.find(l => String(l.sellerId) === String(user.id));
+    const headerRating = $('#headerRating');
+    if (headerRating)
+        headerRating.textContent = Number(own?.sellerRating || 0).toFixed(1);
+    show('marketScreen');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            updateCamera();
+            updateNearbyCars();
+        });
+    });
+    emitPlayerUpdate(false);
+});
+socket.on('auth:error', toast);
+socket.on('listing:error', toast);
+socket.on('vip:purchase-required', d => { pendingSale = d?.payload || pendingSale; $('#vipModal').classList.remove('hidden'); });
+socket.on('balance:update', d => { crystals = Number(d.crystals || 0); $('#crystalCount').textContent = crystals; });
+socket.on('listing:created', x => { pendingSale = null; lastCreatedListingId = x.id; listings.push(x); show('marketScreen'); resetWizard(); toast(`Авто поставлено на місце №${x.slotId ?? x.spot}`); render(); });
+socket.on('world:listings', x => { listings = x || []; renderSlots(); if (user) {
+    $('#myCarsCount').textContent = myActiveCars().length;
+    if (!$('#myCarsModal').classList.contains('hidden'))
+        renderMyCars();
+} });
+socket.on('world:players', x => { players = x || []; renderRemotePlayers(); });
+socket.on('player:updated', p => { const i = players.findIndex(x => String(x.id) === String(p.id)); i >= 0 ? players[i] = p : players.push(p); renderRemotePlayers(); });
+socket.on('player:left', p => { players = players.filter(x => String(x.id) !== String(p.id)); renderRemotePlayers(); });
+socket.on('chat:new', m => { messages.push(m); toast(`Нове повідомлення від ${m.fromName}`); renderConversations(); if (activeChat && sameChatMessage(m, activeChat)) {
+    markChatRead();
+    renderChat();
+} });
+socket.on('chat:sent', m => { messages.push(m); $('#chatText').value = ''; renderConversations(); renderChat(); });
+socket.on('daily:result', d => { if (d.ok) {
+    crystals = Number(d.crystals);
+    dailyBonusAvailable = false;
+    $('#officeBonusDot').classList.add('hidden');
+    updateOfficeBonusState();
+    $('#crystalCount').textContent = crystals;
+    toast(`Щоденний бонус: +${d.reward} 💎`);
+}
+else
+    toast(d.message); });
+socket.on('seller:rating-updated', d => { listings.forEach(l => { if (String(l.sellerId) === String(d.sellerId)) {
+    l.sellerRating = d.rating;
+    l.ratingCount = d.ratingCount;
+} }); if (selected && String(selected.sellerId) === String(d.sellerId))
+    updateRatingPanel(selected); renderSlots(); });
 
-function setZoom(v){zoom=Math.max(.38,Math.min(1.25,v));updateCamera();updateNearbyCars()}$('#zoomIn').onclick=()=>setZoom(zoom+.1);$('#zoomOut').onclick=()=>setZoom(zoom-.1);let pinch=null;$('#camera').addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={d:Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY),z:zoom}}},{passive:true});$('#camera').addEventListener('touchmove',e=>{if(e.touches.length===2&&pinch){e.preventDefault();const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(pinch.z*d/pinch.d)}},{passive:false});$('#camera').addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null},{passive:true});
+/* 5. Взаємодія з автомобілями та офісом */
+function distanceToElement(el) { const r = el.getBoundingClientRect(), c = $('#camera').getBoundingClientRect(); return Math.hypot(r.left + r.width / 2 - (c.left + c.width / 2), r.top + r.height / 2 - (c.top + c.height / 2)); }
+function tryOpenCar(l, car) { if (distanceToElement(car) > INTERACTION_RADIUS) {
+    car.classList.add('too-far');
+    setTimeout(() => car.classList.remove('too-far'), 450);
+    return toast('Підійдіть ближче до автомобіля');
+} openCar(l); }
+function updateNearbyCars() { $$('.car').forEach(c => c.classList.toggle('nearby', distanceToElement(c) <= INTERACTION_RADIUS)); const nearOffice = distanceToElement($('#office')) <= 190; $('#office').style.filter = nearOffice ? 'drop-shadow(0 0 18px #58ff9a)' : ''; }
+function updateRatingPanel(l) { const avg = Number(l.sellerRating || 0), count = Number(l.ratingCount || 0); $('#mRating').textContent = count ? `${avg.toFixed(1)} ★ · ${count} оцінок` : 'Новий продавець'; const mine = String(l.sellerId) === String(user.id); $('#ratingStars').innerHTML = mine ? '<small>Власний профіль</small>' : [1, 2, 3, 4, 5].map(n => `<button type="button" data-rate="${n}" title="${n} з 5">★</button>`).join(''); $$('#ratingStars [data-rate]').forEach(b => b.onclick = () => socket.emit('seller:rate', { sellerId: l.sellerId, rating: Number(b.dataset.rate) })); }
+function openCar(l) { selected = l; const slot = Number(l.slotId ?? l.spot); $('#mSlot').textContent = `${slot <= VIP_SLOTS ? 'VIP · ' : ''}місце №${slot}`; $('#mTitle').textContent = `${l.brand} ${l.model}`; $('#mYear').textContent = l.year; $('#mPrice').textContent = '$' + Number(l.price).toLocaleString(); $('#mColor').textContent = COLOR_NAMES[l.color] || l.color || 'Не вказано'; $('#mSeller').textContent = l.sellerName; $('#mDescription').textContent = l.description || 'Без опису'; updateRatingPanel(l); $('#showcaseCar').className = 'showcase-car'; $('#showcaseCar').style.backgroundImage = `url(${carImage(l.color)})`; const mine = String(l.sellerId) === String(user.id); $('#openChatBtn').classList.toggle('hidden', mine); $('#removeBtn').classList.toggle('hidden', !mine); $('#carModal').classList.remove('hidden'); }
+function closeCarModal() { $('#carModal').classList.add('hidden'); selected = null; }
+function updateOfficeBonusState() { const text = $('#officeDailyText'), btn = $('#officeDaily'); if (!text || !btn)
+    return; text.textContent = dailyBonusAvailable ? 'Нагорода готова — забрати' : 'Сьогодні вже отримано'; btn.classList.toggle('available', dailyBonusAvailable); }
+function showOffice() { updateOfficeBonusState(); $('#officeModal').classList.remove('hidden'); }
+function closeOffice() { $('#officeModal').classList.add('hidden'); }
+function openOffice() { if (distanceToElement($('#office')) > 235)
+    return toast('Підійдіть ближче до офісу'); showOffice(); }
+function openMenu() { $('#gameMenu').classList.remove('hidden'); }
+function closeMenu() { $('#gameMenu').classList.add('hidden'); }
+$('#office').onclick = openOffice;
+$('#menuBtn').onclick = openMenu;
+$$('[data-close-menu]').forEach(x => x.onclick = closeMenu);
+$('#menuOffice').onclick = () => { closeMenu(); showOffice(); };
+$('#menuSell').onclick = () => { closeMenu(); show('sellScreen'); };
+$('#menuMyCars').onclick = () => { closeMenu(); openMyCars(); };
+$('#menuDeveloper').onclick = () => { closeMenu(); show('developerScreen'); };
+$('#menuChats').onclick = () => { closeMenu(); showInbox(); };
+$$('.back-market').forEach(x => x.onclick = () => show('marketScreen'));
+$$('.close-office-modal').forEach(x => x.onclick = closeOffice);
+$('#officeDaily').onclick = () => socket.emit('daily:claim');
+$('#officeSell').onclick = () => { closeOffice(); show('sellScreen'); };
+$('#officeMyCars').onclick = () => { closeOffice(); openMyCars(); };
+$('#officeRating').onclick = () => toast('Рейтинг продавців показується в картці автомобіля');
+
+/* 6. Майстер створення оголошення */
+function setStep(step) { $$('.wizard-step').forEach(x => x.classList.toggle('active', Number(x.dataset.step) === step)); $$('.step-indicator i').forEach((x, i) => x.classList.toggle('active', i < step)); }
+$$('.next-step').forEach(btn => btn.onclick = () => { const current = btn.closest('.wizard-step'), inputs = [...current.querySelectorAll('input[required],textarea[required]')]; if (inputs.some(x => !x.reportValidity()))
+    return; setStep(Number(current.dataset.step) + 1); });
+$$('.prev-step').forEach(btn => btn.onclick = () => setStep(Number(btn.closest('.wizard-step').dataset.step) - 1));
+function resetWizard() { $('#sellForm').reset(); setStep(1); }
+$('#sellForm').onsubmit = e => { e.preventDefault(); const payload = Object.fromEntries(new FormData(e.currentTarget).entries()); payload.requestVip = payload.requestVip === 'true'; pendingSale = payload; socket.emit('listing:create', payload); };
+$('#continueFreeBtn').onclick = () => { if (!pendingSale)
+    return; pendingSale.requestVip = false; $('#vipModal').classList.add('hidden'); socket.emit('listing:create', pendingSale); };
+$('#buyVipBtn').onclick = () => { socket.emit('vip:buy-crystals'); toast('Покупка кристалів буде підключена через Telegram Payments'); };
+$$('.close-vip-modal').forEach(x => x.onclick = () => $('#vipModal').classList.add('hidden'));
+
+/* 7. Мої автомобілі */
+function myActiveCars() { return listings.filter(l => String(l.sellerId) === String(user?.id) && l.status !== 'removed'); }
+function renderMyCars() {
+    const cars = myActiveCars(), box = $('#myCarsList');
+    $('#myCarsCount').textContent = cars.length;
+    if (!cars.length) {
+        box.innerHTML = '<div class="empty-list">Ви ще не виставили жодного автомобіля.</div>';
+        return;
+    }
+    box.innerHTML = cars.map(l => `<div class="my-car-item" data-id="${esc(l.id)}"><div class="my-car-thumb"><img src="${carImage(l.color)}" alt="${esc(l.brand)}"></div><div><h3>${esc(l.brand)} ${esc(l.model)}</h3><p>$${Number(l.price).toLocaleString()} · місце №${Number(l.slotId ?? l.spot)}</p><p>На продажу</p></div><div class="my-car-actions"><button class="details-btn" data-details="${esc(l.id)}">Деталі</button><button class="remove-car" data-remove="${esc(l.id)}">Зняти</button></div></div>`).join('');
+    box.querySelectorAll('[data-details]').forEach(b => b.onclick = () => { const l = listings.find(x => x.id === b.dataset.details); if (l) {
+        closeMyCars();
+        openCar(l);
+    } });
+    box.querySelectorAll('[data-remove]').forEach(b => b.onclick = () => { if (confirm('Зняти це авто з продажу?')) {
+        socket.emit('listing:remove', b.dataset.remove);
+        toast('Оголошення знято');
+    } });
+}
+function openMyCars() { renderMyCars(); $('#myCarsModal').classList.remove('hidden'); }
+function closeMyCars() { $('#myCarsModal').classList.add('hidden'); }
+$$('.close-my-cars').forEach(x => x.onclick = closeMyCars);
+$('#addAnotherCar').onclick = () => { closeMyCars(); show('sellScreen'); };
+$('#sendDeveloper').onclick = () => { const text = $('#developerText').value.trim(); if (!text)
+    return toast('Напишіть повідомлення'); const username = 's_5994'; const url = `https://t.me/${username}?text=${encodeURIComponent(text)}`; tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank'); };
+
+/* 8. Чати та повідомлення */
+function conversationKey(m) { const partner = String(m.fromUserId) === String(user.id) ? String(m.toUserId) : String(m.fromUserId); return `${m.listingId}|${partner}`; }
+function sameChatMessage(m, c) { return m.listingId === c.listingId && (String(m.fromUserId) === c.partnerId || String(m.toUserId) === c.partnerId); }
+function getConversations() { const map = new Map(); messages.forEach(m => { const partnerId = String(m.fromUserId) === String(user.id) ? String(m.toUserId) : String(m.fromUserId), partnerName = String(m.fromUserId) === String(user.id) ? (m.toName || 'Користувач') : m.fromName, key = `${m.listingId}|${partnerId}`, old = map.get(key); const conv = { key, listingId: m.listingId, listingTitle: m.listingTitle || 'Автомобіль', partnerId, partnerName, last: m, unread: messages.filter(x => x.listingId === m.listingId && String(x.fromUserId) === partnerId && String(x.toUserId) === String(user.id) && !x.read).length }; if (!old || new Date(m.createdAt) > new Date(old.last.createdAt))
+    map.set(key, conv); }); return [...map.values()].sort((a, b) => new Date(b.last.createdAt) - new Date(a.last.createdAt)); }
+function renderConversations() { if (!user)
+    return; const convs = getConversations(), box = $('#conversations'), unread = messages.filter(m => String(m.toUserId) === String(user.id) && !m.read).length; $('#badge').textContent = unread; $('#badge').classList.toggle('hidden', !unread); box.innerHTML = convs.length ? '' : '<div class="empty-list">Повідомлень ще немає</div>'; convs.forEach(c => { const b = document.createElement('button'); b.className = `conversation ${activeChat?.key === c.key ? 'active' : ''}`; b.innerHTML = `<span class="avatar">${esc(c.partnerName[0] || '?')}</span><span><b>${esc(c.partnerName)}</b><small>${esc(c.listingTitle)}</small><em>${esc(c.last.text)}</em></span>${c.unread ? `<i>${c.unread}</i>` : ''}`; b.onclick = () => openConversation(c); box.appendChild(b); }); }
+function showInbox() { activeChat = null; $('#chatActive').classList.add('hidden'); $('#chatEmpty').classList.remove('hidden'); renderConversations(); show('inboxScreen'); }
+function openConversation(c) { activeChat = c; show('inboxScreen'); markChatRead(); renderConversations(); renderChat(); }
+function markChatRead() { if (!activeChat)
+    return; messages.forEach(m => { if (m.listingId === activeChat.listingId && String(m.fromUserId) === activeChat.partnerId && String(m.toUserId) === String(user.id))
+    m.read = true; }); socket.emit('chat:read', { listingId: activeChat.listingId, partnerId: activeChat.partnerId }); }
+function renderChat() { if (!activeChat)
+    return; $('#chatEmpty').classList.add('hidden'); $('#chatActive').classList.remove('hidden'); $('#chatName').textContent = activeChat.partnerName; $('#chatCar').textContent = activeChat.listingTitle; const arr = messages.filter(m => sameChatMessage(m, activeChat)).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)), box = $('#chatMessages'); box.innerHTML = ''; arr.forEach(m => { const mine = String(m.fromUserId) === String(user.id), d = document.createElement('div'); d.className = `bubble ${mine ? 'mine' : 'theirs'}`; d.innerHTML = `<p>${esc(m.text)}</p><small>${new Date(m.createdAt).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</small>`; box.appendChild(d); }); requestAnimationFrame(() => box.scrollTop = box.scrollHeight); }
+function startChatWithListing(l) { const existing = getConversations().find(c => c.listingId === l.id && c.partnerId === String(l.sellerId)); activeChat = existing || { key: `${l.id}|${l.sellerId}`, listingId: l.id, listingTitle: `${l.brand} ${l.model}`, partnerId: String(l.sellerId), partnerName: l.sellerName }; closeCarModal(); openConversation(activeChat); }
+$('#inboxBtn').onclick = showInbox;
+$('#backMarket').onclick = () => show('marketScreen');
+$('#closeChat').onclick = () => { activeChat = null; $('#chatActive').classList.add('hidden'); $('#chatEmpty').classList.remove('hidden'); renderConversations(); };
+$('#sendChat').onclick = () => { const text = $('#chatText').value.trim(); if (activeChat && text)
+    socket.emit('chat:send', { listingId: activeChat.listingId, toUserId: activeChat.partnerId, text }); };
+$('#chatText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    $('#sendChat').click();
+} });
+$('#openChatBtn').onclick = () => selected && startChatWithListing(selected);
+$('#removeBtn').onclick = () => { if (selected) {
+    socket.emit('listing:remove', selected.id);
+    closeCarModal();
+    toast('Оголошення знято');
+} };
+$$('.close-car-modal').forEach(x => x.onclick = closeCarModal);
+
+/* 9. Керування персонажем */
+let lastPlayerEmit = 0;
+function emitPlayerUpdate(moving) { if (!user)
+    return; const now = Date.now(); if (moving && now - lastPlayerEmit < 80)
+    return; lastPlayerEmit = now; socket.emit('player:update', { x: pos.x, y: pos.y, moving: !!moving, faceLeft: $('#player')?.classList.contains('face-left') || false }); }
+function setRunning(dx = 0) { const p = $('#player'); p.classList.add('running'); if (dx < -.02)
+    p.classList.add('face-left'); if (dx > .02)
+    p.classList.remove('face-left'); clearTimeout(runStopTimer); runStopTimer = setTimeout(stopRunning, 140); }
+function stopRunning() { $('#player')?.classList.remove('running'); emitPlayerUpdate(false); }
+function move(dx, dy) { pos.x = Math.max(45, Math.min(MAP_SIZE - 45, pos.x + dx)); pos.y = Math.max(70, Math.min(MAP_SIZE - 45, pos.y + dy)); updateCamera(); if (Math.abs(dx) + Math.abs(dy) > .01)
+    setRunning(dx); emitPlayerUpdate(true); updateNearbyCars(); }
+window.onkeydown = e => { const k = { ArrowUp: [0, -10], w: [0, -10], ArrowDown: [0, 10], s: [0, 10], ArrowLeft: [-10, 0], a: [-10, 0], ArrowRight: [10, 0], d: [10, 0] }; if (k[e.key]) {
+    e.preventDefault();
+    move(...k[e.key]);
+} };
+window.addEventListener('keyup', stopRunning);
+window.addEventListener('resize', updateCamera);
+
+/* 10. Джойстик і масштабування */
+const base = $('#joystickBase'), stick = $('#joystickStick');
+let joy = { active: false, x: 0, y: 0, pointerId: null };
+function updateJoystick(e) { const r = base.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = e.clientX - cx, dy = e.clientY - cy; const max = r.width * .34, len = Math.hypot(dx, dy) || 1; if (len > max) {
+    dx = dx / len * max;
+    dy = dy / len * max;
+} joy.x = dx / max; joy.y = dy / max; stick.style.transform = `translate(${dx}px,${dy}px)`; }
+function joystickLoop() { if (!joy.active)
+    return; move(joy.x * 5.5, joy.y * 5.5); joystickFrame = requestAnimationFrame(joystickLoop); }
+function stopJoystick() { joy.active = false; joy.x = joy.y = 0; stick.style.transform = 'translate(0,0)'; if (joystickFrame)
+    cancelAnimationFrame(joystickFrame); stopRunning(); }
+base.addEventListener('pointerdown', e => { e.preventDefault(); joy.active = true; joy.pointerId = e.pointerId; base.setPointerCapture(e.pointerId); updateJoystick(e); joystickLoop(); });
+base.addEventListener('pointermove', e => { if (joy.active && e.pointerId === joy.pointerId) {
+    e.preventDefault();
+    updateJoystick(e);
+} });
+base.addEventListener('pointerup', stopJoystick);
+base.addEventListener('pointercancel', stopJoystick);
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault());
+function setZoom(v) { zoom = Math.max(.38, Math.min(1.25, v)); updateCamera(); updateNearbyCars(); }
+$('#zoomIn').onclick = () => setZoom(zoom + .1);
+$('#zoomOut').onclick = () => setZoom(zoom - .1);
+let pinch = null;
+$('#camera').addEventListener('touchstart', e => { if (e.touches.length === 2) {
+    pinch = { d: Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), z: zoom };
+} }, { passive: true });
+$('#camera').addEventListener('touchmove', e => { if (e.touches.length === 2 && pinch) {
+    e.preventDefault();
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    setZoom(pinch.z * d / pinch.d);
+} }, { passive: false });
+$('#camera').addEventListener('touchend', e => { if (e.touches.length < 2)
+    pinch = null; }, { passive: true });
