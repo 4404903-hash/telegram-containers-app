@@ -247,6 +247,32 @@ $$('.close-car-modal').forEach(x => x.onclick = closeCarModal);
 
 /* 9. Керування персонажем */
 let lastPlayerEmit = 0;
+function isTypingField(element) {
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement ||
+    element?.isContentEditable
+  );
+}
+
+document.addEventListener('keydown', (event) => {
+  // Коли користувач пише текст — WASD не керує персонажем
+  if (isTypingField(event.target)) {
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+    event.preventDefault();
+  }
+
+  if (key === 'w' || key === 'arrowup') move(0, -5);
+  if (key === 's' || key === 'arrowdown') move(0, 5);
+  if (key === 'a' || key === 'arrowleft') move(-5, 0);
+  if (key === 'd' || key === 'arrowright') move(5, 0);
+});
 function emitPlayerUpdate(moving) { if (!user)
     return; const now = Date.now(); if (moving && now - lastPlayerEmit < 80)
     return; lastPlayerEmit = now; socket.emit('player:update', { x: pos.x, y: pos.y, moving: !!moving, faceLeft: $('#player')?.classList.contains('face-left') || false }); }
