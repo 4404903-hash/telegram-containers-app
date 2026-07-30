@@ -227,7 +227,7 @@ async function emitWorld() {
   io.emit('world:players', getPublicPlayers());
 }
 
-async function randomFreeSlot(client, min, max) {
+async function firstFreeSlot(client, min, max) {
   const result = await client.query(`
     SELECT slot_id FROM listings
     WHERE status='active' AND slot_id BETWEEN $1 AND $2
@@ -300,7 +300,7 @@ io.on('connection', (socket) => {
           await client.query('ROLLBACK');
           return socket.emit('vip:purchase-required', { price: VIP_PRICE, payload: p });
         }
-        slotId = await firstFreeSlot(client, 1, VIP_SLOTS);
+        slotId = await randomFreeSlot(client, 1, VIP_SLOTS);
         if (slotId === null) {
           await client.query('ROLLBACK');
           return socket.emit('listing:error', 'Усі 5 VIP-місць зайняті');
