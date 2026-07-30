@@ -235,7 +235,7 @@ async function randomFreeSlot(client, min, max) {
   const used = new Set(result.rows.map(r => Number(r.slot_id)));
   const free = [];
   for (let i = min; i <= max; i += 1) if (!used.has(i)) free.push(i);
-  return free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  return free.length ? free[0] : null;
 }
 
 io.on('connection', (socket) => {
@@ -300,7 +300,7 @@ io.on('connection', (socket) => {
           await client.query('ROLLBACK');
           return socket.emit('vip:purchase-required', { price: VIP_PRICE, payload: p });
         }
-        slotId = await randomFreeSlot(client, 1, VIP_SLOTS);
+        slotId = await firstFreeSlot(client, 1, VIP_SLOTS);
         if (slotId === null) {
           await client.query('ROLLBACK');
           return socket.emit('listing:error', 'Усі 5 VIP-місць зайняті');
@@ -308,7 +308,7 @@ io.on('connection', (socket) => {
         const balance = await client.query(`UPDATE users SET crystals=crystals-$1, updated_at=NOW() WHERE id=$2 RETURNING crystals`, [VIP_PRICE, user.id]);
         socket.emit('balance:update', { crystals: Number(balance.rows[0].crystals) });
       } else {
-        slotId = await randomFreeSlot(client, VIP_SLOTS + 1, TOTAL_SLOTS);
+        slotId = await firstFreeSlot(client, VIP_SLOTS + 1, TOTAL_SLOTS);
         if (slotId === null) {
           await client.query('ROLLBACK');
           return socket.emit('listing:error', 'Усі безкоштовні місця зайняті');
