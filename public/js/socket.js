@@ -11,6 +11,11 @@ socket.on('auth:ok', d => {
     messages = d.messages || [];
     players = d.players || [];
     crystals = Number(d.crystals || 0);
+    const crystalCount = $('#crystalCount');
+
+if (crystalCount) {
+    crystalCount.textContent = crystals;
+}
     dailyBonusAvailable = !!d.dailyBonusAvailable;
     const officeBonusDot = $('#officeBonusDot');
     if (officeBonusDot)
