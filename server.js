@@ -12,7 +12,7 @@ const DATABASE_URL = process.env.DATABASE_URL || '';
 const DEMO_MODE = String(process.env.DEMO_MODE || 'true') === 'true';
 const VIP_PRICE = 10;
 const VIP_SLOTS = 5;
-const TOTAL_SLOTS = 50;
+const TOTAL_SLOTS = 30;
 
 if (!DATABASE_URL) {
   console.error('Помилка: DATABASE_URL не налаштована');
@@ -254,7 +254,7 @@ io.on('connection', (socket) => {
 
       const account = await ensureUser(user);
       onlineUsers.set(user.id, socket.id);
-      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1300, y: 2260, moving: false, faceLeft: false, socketId: socket.id });
+      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1000, y: 1480, moving: false, faceLeft: false, socketId: socket.id });
       socket.join(`user:${user.id}`);
 
       const [listings, messages] = await Promise.all([getPublicListings(), getUserMessages(user.id)]);
@@ -273,7 +273,7 @@ io.on('connection', (socket) => {
     if (!pl) return;
     const x = Number(p?.x), y = Number(p?.y);
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    Object.assign(pl, { x: Math.max(0, Math.min(2600, x)), y: Math.max(0, Math.min(2600, y)), moving: !!p.moving, faceLeft: !!p.faceLeft });
+    Object.assign(pl, { x: Math.max(0, Math.min(2000, x)), y: Math.max(0, Math.min(2000, y)), moving: !!p.moving, faceLeft: !!p.faceLeft });
     socket.broadcast.emit('player:updated', { id: pl.id, name: pl.name, x: pl.x, y: pl.y, moving: pl.moving, faceLeft: pl.faceLeft });
   });
 

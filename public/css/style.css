@@ -1502,3 +1502,151 @@ textarea {
     color: rgba(244, 207, 68, 0.9) !important;
     font-size: 15px !important;
 }
+/* =========================================================
+   AUTObazar v7.0 — карта на 30 паркомісць
+========================================================= */
+
+:root {
+  --map: 2000px;
+}
+
+/* Основна територія */
+.market-ground {
+  left: 100px !important;
+  top: 100px !important;
+  width: 1800px !important;
+  height: 1450px !important;
+  border-radius: 24px !important;
+}
+
+/* Дерева навколо території */
+.tree-line.top {
+  left: 60px !important;
+  top: 0 !important;
+  width: 1880px !important;
+  height: 90px !important;
+}
+
+.tree-line.left {
+  left: 0 !important;
+  top: 70px !important;
+  width: 90px !important;
+  height: 1490px !important;
+}
+
+.tree-line.right {
+  right: 0 !important;
+  top: 70px !important;
+  width: 90px !important;
+  height: 1490px !important;
+}
+
+/* Дорога перед входом */
+.outside-road {
+  left: 0 !important;
+  top: 1580px !important;
+  width: 2000px !important;
+  height: 220px !important;
+}
+
+/* Паркан */
+.fence-top {
+  left: 85px !important;
+  top: 85px !important;
+  width: 1830px !important;
+}
+
+.fence-left {
+  left: 85px !important;
+  top: 85px !important;
+  height: 1475px !important;
+}
+
+.fence-right {
+  right: 85px !important;
+  top: 85px !important;
+  height: 1475px !important;
+}
+
+.fence-bottom-left {
+  left: 85px !important;
+  top: 1540px !important;
+  width: 700px !important;
+}
+
+.fence-bottom-right {
+  right: 85px !important;
+  top: 1540px !important;
+  width: 700px !important;
+}
+
+/* Ворота */
+.market-gate {
+  top: 1525px !important;
+  width: 215px !important;
+}
+
+.gate-left {
+  left: 785px !important;
+}
+
+.gate-right {
+  left: 1000px !important;
+}
+
+/* Центральна доріжка до офісу */
+.main-lane {
+  left: 900px !important;
+  top: 390px !important;
+  width: 200px !important;
+  height: 1160px !important;
+}
+
+.lane-markings {
+  left: 995px !important;
+  top: 620px !important;
+  height: 820px !important;
+}
+
+.crosswalk {
+  left: 905px !important;
+  top: 420px !important;
+  width: 190px !important;
+  height: 70px !important;
+}
+
+/* Бічні дороги більше не потрібні */
+.side-lane {
+  display: none !important;
+}
+
+/* Офіс */
+.office {
+  left: 1000px !important;
+  top: 280px !important;
+  width: 320px !important;
+  height: 205px !important;
+}
+
+/* Трохи менші паркомісця */
+.parking-slot {
+  width: 120px !important;
+  height: 210px !important;
+  border-width: 4px !important;
+}
+
+/* Машина всередині місця */
+.car img {
+  width: 76px !important;
+  height: 150px !important;
+}
+
+/* Номер місця */
+.parking-slot > small {
+  font-size: 38px !important;
+}
+
+/* Прибираємо старі назви зон */
+.parking-label {
+  display: none !important;
+}

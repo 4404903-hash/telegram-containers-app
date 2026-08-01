@@ -5,18 +5,73 @@
 
 /* 2. Карта, паркомісця та автомобілі */
 function marketplaceSlots() {
-    const result = [];
-    let id = 1;
-    // 5 великих VIP-місць прямо перед офісом
-    for (const x of [660, 980, 1300, 1620, 1940])
-        result.push({ id: id++, x, y: 610, rotation: 0 });
-    // 45 повнорозмірних місць: 5 рядів по 9
-    const xs = [340, 580, 820, 1060, 1300, 1540, 1780, 2020, 2260];
-    for (const y of [930, 1240, 1550, 1860, 2170]) {
-        for (const x of xs)
-            result.push({ id: id++, x, y, rotation: 0 });
-    }
-    return result;
+  const result = [];
+
+  /*
+    Розташування:
+
+    Верхній ряд:
+    1–5 ліворуч від офісу
+    6–10 праворуч від офісу
+
+    Середній ряд:
+    11–20
+
+    Нижній ряд:
+    21–30
+  */
+
+  const topLeftX = [300, 420, 540, 660, 780];
+  const topRightX = [1220, 1340, 1460, 1580, 1700];
+
+  let id = 1;
+
+  // Місця 1–5 — VIP зліва від офісу
+  for (const x of topLeftX) {
+    result.push({
+      id: id++,
+      x,
+      y: 520,
+      rotation: 0
+    });
+  }
+
+  // Місця 6–10 — справа від офісу
+  for (const x of topRightX) {
+    result.push({
+      id: id++,
+      x,
+      y: 520,
+      rotation: 0
+    });
+  }
+
+  // 10 місць у середньому ряду
+  const regularX = [
+    280, 440, 600, 760, 920,
+    1080, 1240, 1400, 1560, 1720
+  ];
+
+  for (const x of regularX) {
+    result.push({
+      id: id++,
+      x,
+      y: 900,
+      rotation: 0
+    });
+  }
+
+  // 10 місць у нижньому ряду
+  for (const x of regularX) {
+    result.push({
+      id: id++,
+      x,
+      y: 1280,
+      rotation: 0
+    });
+  }
+
+  return result;
 }
 const slots = marketplaceSlots();
 function carImage(color) { return `/assets/cars/${COLOR_NAMES[color] ? color : 'black'}.png`; }
