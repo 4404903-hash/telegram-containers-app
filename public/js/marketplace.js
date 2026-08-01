@@ -21,8 +21,21 @@ function marketplaceSlots() {
     21–30
   */
 
-  const topLeftX = [300, 420, 540, 660, 780];
-  const topRightX = [1220, 1340, 1460, 1580, 1700];
+  const topLeftX = [
+  220,
+  365,
+  510,
+  655,
+  800
+];
+
+const topRightX = [
+  1200,
+  1345,
+  1490,
+  1635,
+  1780
+];
 
   let id = 1;
 
@@ -36,7 +49,7 @@ function marketplaceSlots() {
     });
   }
 
-  // Місця 6–10 — справа від офісу
+  // Місця 6–10 — Vip справа від офісу
   for (const x of topRightX) {
     result.push({
       id: id++,

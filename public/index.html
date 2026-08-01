@@ -58,7 +58,7 @@
       <section class="wizard-step" data-step="2"><p class="eyebrow">КРОК 2 З 3</p><h3>Основні характеристики</h3><label>Рік<input name="year" type="number" min="1950" max="2030" placeholder="2020" required></label><label>Ціна, $<input name="price" type="number" min="1" placeholder="25000" required></label><fieldset><legend>Колір</legend><div class="color-picker">
         <label><input type="radio" name="color" value="black" checked><span class="swatch black"></span>Чорний</label><label><input type="radio" name="color" value="white"><span class="swatch white"></span>Білий</label><label><input type="radio" name="color" value="silver"><span class="swatch silver"></span>Срібний</label><label><input type="radio" name="color" value="red"><span class="swatch red"></span>Червоний</label><label><input type="radio" name="color" value="blue"><span class="swatch blue"></span>Синій</label><label><input type="radio" name="color" value="green"><span class="swatch green"></span>Зелений</label>
       </div></fieldset><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button type="button" class="primary next-step">Далі</button></div></section>
-      <section class="wizard-step" data-step="3"><p class="eyebrow">КРОК 3 З 3</p><h3>Детальний опис</h3><label>Опис<textarea name="description" maxlength="700" placeholder="Стан, пробіг, комплектація, що ремонтувалося…" required></textarea></label><label class="vip-option"><input type="checkbox" name="requestVip" value="true"><span>💎 Спробувати VIP-місце №1–5</span><small>Вартість: 10 кристалів. Без вибору місце №6–50 буде безкоштовним і випадковим.</small></label><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button class="primary" type="submit">Виставити машину</button></div></section>
+      <section class="wizard-step" data-step="3"><p class="eyebrow">КРОК 3 З 3</p><h3>Детальний опис</h3><label>Опис<textarea name="description" maxlength="700" placeholder="Стан, пробіг, комплектація, що ремонтувалося…" required></textarea></label><label class="vip-option"><input type="checkbox" name="requestVip" value="true"><span>💎 Спробувати VIP-місце №1–10</span><small>Вартість: 10 кристалів. Без вибору буде видано перше вільне місце №11–30.</small></label><div class="wizard-nav"><button type="button" class="secondary prev-step">Назад</button><button class="primary" type="submit">Виставити машину</button></div></section>
     </form>
   </section>
 
@@ -73,12 +73,12 @@
 
   <div id="myCarsModal" class="modal hidden"><div class="backdrop close-my-cars"></div><article class="my-cars-card"><button class="close close-my-cars">×</button><p class="eyebrow">ОСОБИСТИЙ ГАРАЖ</p><h2>Мої авто на продажу</h2><div id="myCarsList" class="my-cars-list"></div><button id="addAnotherCar" class="primary">Виставити нове авто</button></article></div>
 
-  <div id="vipModal" class="modal hidden"><div class="backdrop close-vip-modal"></div><article class="vip-card"><button class="close close-vip-modal">×</button><div class="vip-gem">💎</div><p class="eyebrow">ЦЕНТРАЛЬНИЙ VIP-РЯД</p><h2>Купити VIP-місце?</h2><p>Місця №1–5 мають преміальну підсвітку й розташовані найближче до офісу.</p><div class="vip-price">10 💎</div><button id="buyVipBtn" class="primary">Купити кристали</button><button id="continueFreeBtn" class="secondary">Поставити безкоштовно</button></article></div>
+  <div id="vipModal" class="modal hidden"><div class="backdrop close-vip-modal"></div><article class="vip-card"><button class="close close-vip-modal">×</button><div class="vip-gem">💎</div><p class="eyebrow">ЦЕНТРАЛЬНИЙ VIP-РЯД</p><h2>Купити VIP-місце?</h2><p>Місця №1–10 мають преміальну підсвітку й розташовані найближче до офісу.</p><div class="vip-price">10 💎</div><button id="buyVipBtn" class="primary">Купити кристали</button><button id="continueFreeBtn" class="secondary">Поставити безкоштовно</button></article></div>
 
   <div id="toast" class="toast hidden"></div>
   <!-- AutoBazar v6.2: модульна структура клієнта. Порядок важливий. -->
-  <script src="/js/core.js?v=20260801-700"></script>
-  <script src="/js/marketplace.js?v=20260801-700"></script>
+  <script src="/js/core.js?v=20260801-710"></script>
+  <script src="/js/marketplace.js?v=20260801-710"></script>
   <script src="/js/camera.js?v=20260801-700"></script>
   <script src="/js/interactions.js?v=20260726-620"></script>
   <script src="/js/sell.js?v=20260726-620"></script>

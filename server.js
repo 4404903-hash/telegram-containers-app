@@ -11,7 +11,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const DEMO_MODE = String(process.env.DEMO_MODE || 'true') === 'true';
 const VIP_PRICE = 10;
-const VIP_SLOTS = 5;
+const VIP_SLOTS = 10;
 const TOTAL_SLOTS = 30;
 
 if (!DATABASE_URL) {
@@ -300,10 +300,10 @@ io.on('connection', (socket) => {
           await client.query('ROLLBACK');
           return socket.emit('vip:purchase-required', { price: VIP_PRICE, payload: p });
         }
-        slotId = await randomFreeSlot(client, 1, VIP_SLOTS);
+        slotId = await firstFreeSlot(client, 1, VIP_SLOTS);
         if (slotId === null) {
           await client.query('ROLLBACK');
-          return socket.emit('listing:error', 'Усі 5 VIP-місць зайняті');
+          return socket.emit('listing:error', 'Усі 10 VIP-місць зайняті');
         }
         const balance = await client.query(`UPDATE users SET crystals=crystals-$1, updated_at=NOW() WHERE id=$2 RETURNING crystals`, [VIP_PRICE, user.id]);
         socket.emit('balance:update', { crystals: Number(balance.rows[0].crystals) });
