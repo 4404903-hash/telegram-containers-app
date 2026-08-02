@@ -1705,3 +1705,70 @@ textarea {
 .market-ground {
   opacity: 0.65;
 }
+/* =========================================================
+   AUTObazar — перехід на справжню 3D-карту
+========================================================= */
+
+.three-market {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: #7fa5b2;
+}
+
+.three-market canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * Старий world залишається як невидимий
+ * інтерактивний шар для кнопок та логіки.
+ */
+.world {
+  z-index: 2 !important;
+  background: transparent !important;
+}
+
+/* Ховаємо старі 2D-декорації */
+.market-ground,
+.tree-line,
+.outside-road,
+.market-fence,
+.market-gate,
+.main-lane,
+.lane-markings,
+.crosswalk,
+.side-lane,
+.parking-label {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/*
+ * Залишаємо HTML-паркомісця невидимими,
+ * але вони досі відповідають за натискання.
+ */
+.parking-slot {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* PNG-машину ховаємо, 3D-машина лишається */
+.parking-slot .car img {
+  opacity: 0 !important;
+}
+
+/* Назва, ціна та онлайн-статус поки залишаються */
+.car-label,
+.online-dot {
+  opacity: 1 !important;
+}
+
+/*
+ * 2D-офіс і персонажа поки лишаємо.
+ * Їх перенесемо у 3D на наступних етапах.
+ */
