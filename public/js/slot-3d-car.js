@@ -44,8 +44,8 @@ function createTestCar(container) {
     100
   );
 
-  camera.position.set(0, 8, 0.01);
-  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 5, 8);
+camera.lookAt(0, 0.5, 0);
 
   const hemisphereLight = new THREE.HemisphereLight(
     0xffffff,
@@ -75,7 +75,7 @@ function createTestCar(container) {
        * Якщо модель занадто велика або мала,
        * змінюй тільки це число.
        */
-      car.scale.setScalar(1);
+      car.scale.setScalar(0.45);
 
       /*
        * Положення моделі в центрі контейнера.
@@ -87,7 +87,7 @@ function createTestCar(container) {
        * Math.PI / 2 = 90 градусів
        * Math.PI = 180 градусів
        */
-      car.rotation.y = 0;
+      car.rotation.y = Math.PI / 2;
 
       car.traverse((object) => {
         if (!object.isMesh) {
