@@ -38,7 +38,7 @@ const camera = new THREE.PerspectiveCamera(
  * Приблизно 55° від вертикалі:
  * видно фасад офісу та глибину паркомісць.
  */
-camera.position.set(0, 12, 20);
+camera.position.set(14, 12, 14);
 camera.lookAt(0, 0, 0);
 camera.updateProjectionMatrix();
 
@@ -133,7 +133,8 @@ loader.load(
 
     scene.add(market);
 
-    camera.position.set(0, 10, 15);
+    camera.position.set(14, 12, 14);
+    camera.lookAt(0, 0, 0);
     camera.zoom = 1;
 
     controls.target.set(0, 0, 0);
@@ -214,16 +215,12 @@ camera.aspect = aspect;
 const distance = mapSize * 1.35;
 
 camera.position.set(
-  0,
-  mapSize * 0.75,
-  distance
+  mapSize * 0.7,
+  mapSize * 0.6,
+  mapSize * 0.7
 );
 
-camera.near = 0.1;
-camera.far = mapSize * 20;
-
 controls.target.set(0, 0, 0);
-
 camera.lookAt(controls.target);
 camera.updateProjectionMatrix();
 controls.update();
