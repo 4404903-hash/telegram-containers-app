@@ -36,11 +36,13 @@ const camera = new THREE.OrthographicCamera(
 );
 
 /*
- * Камера прямо перед парковкою,
- * із нахилом приблизно 55°.
+ * Камера прямо перед парковкою.
+ * Нахил до землі приблизно 55 градусів.
  */
-camera.position.set(0, 18, 12);
+camera.position.set(0, 15, 10.5);
 camera.lookAt(0, 0, 0);
+camera.zoom = 1;
+camera.updateProjectionMatrix();
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -86,9 +88,18 @@ controls.enableRotate = false;
 controls.enablePan = true;
 controls.enableZoom = true;
 controls.enableDamping = true;
-controls.screenSpacePanning = true;
 
-controls.minZoom = 0.6;
+controls.dampingFactor = 0.08;
+controls.panSpeed = 1.2;
+controls.zoomSpeed = 0.8;
+
+/*
+ * false — карта рухається по землі,
+ * а не піднімається вгору і вниз.
+ */
+controls.screenSpacePanning = false;
+
+controls.minZoom = 0.55;
 controls.maxZoom = 2.5;
 
 controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
@@ -96,6 +107,8 @@ controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
 
 controls.touches.ONE = THREE.TOUCH.PAN;
 controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+
+renderer.domElement.style.touchAction = "none";
 
 controls.update();
 
@@ -121,6 +134,15 @@ loader.load(
     });
 
     scene.add(market);
+
+    camera.position.set(0, 15, 10.5);
+    camera.zoom = 1;
+
+    controls.target.set(0, 0, 0);
+
+    camera.lookAt(controls.target);
+    camera.updateProjectionMatrix();
+    controls.update();
 
     loadingStatus.textContent = "Гра готова";
 
@@ -155,22 +177,50 @@ loader.load(
 function centerAndScaleMarket(market) {
   market.updateMatrixWorld(true);
 
-  const box = new THREE.Box3().setFromObject(market);
-  const center = box.getCenter(new THREE.Vector3());
-  const size = box.getSize(new THREE.Vector3());
+  /*
+   * Спочатку знаходимо центр початкової моделі.
+   */
+  const originalBox =
+    new THREE.Box3().setFromObject(market);
 
-  market.position.x -= center.x;
-  market.position.z -= center.z;
-  market.position.y -= box.min.y;
+  const originalCenter =
+    originalBox.getCenter(new THREE.Vector3());
 
-  const longestSide = Math.max(size.x, size.z);
+  const originalSize =
+    originalBox.getSize(new THREE.Vector3());
+
+  /*
+   * Переміщуємо центр карти в координату 0,0,0.
+   */
+  market.position.x -= originalCenter.x;
+  market.position.y -= originalCenter.y;
+  market.position.z -= originalCenter.z;
+
+  /*
+   * Масштабуємо карту приблизно до 18 одиниць.
+   */
+  const longestSide = Math.max(
+    originalSize.x,
+    originalSize.z
+  );
 
   if (longestSide > 0) {
-    const targetSize = 18;
-    const scale = targetSize / longestSide;
-
+    const scale = 18 / longestSide;
     market.scale.setScalar(scale);
   }
+
+  market.updateMatrixWorld(true);
+
+  /*
+   * Після масштабування ставимо нижню частину карти
+   * точно на рівень землі Y = 0.
+   */
+  const scaledBox =
+    new THREE.Box3().setFromObject(market);
+
+  market.position.y -= scaledBox.min.y;
+
+  market.updateMatrixWorld(true);
 }
 
 /* Нижнє меню */
@@ -235,6 +285,12 @@ window.addEventListener("resize", resizeScene);
 resizeScene();
 
 renderer.setAnimationLoop(() => {
+  /*
+   * Не дозволяємо панорамуванню підняти
+   * центр камери над картою.
+   */
+  controls.target.y = 0;
+
   controls.update();
   renderer.render(scene, camera);
 });
