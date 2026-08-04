@@ -1,3 +1,5 @@
+import { GLTFLoader } from
+  "three/addons/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { OrbitControls } from
   "three/addons/controls/OrbitControls.js";
@@ -97,21 +99,79 @@ controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 
 controls.update();
 
-/*
- * Тимчасова поверхня.
- * Наступним кроком замінимо її твоїм market.glb.
- */
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(20, 16),
-  new THREE.MeshStandardMaterial({
-    color: 0x555b60,
-    roughness: 0.95
-  })
+const loader = new GLTFLoader();
+
+loadingStatus.textContent = "Завантаження 3D-карти…";
+
+loader.load(
+  "/assets/models/market.glb",
+
+  (gltf) => {
+    const market = gltf.scene;
+
+    centerAndScaleMarket(market);
+
+    market.traverse((object) => {
+      if (!object.isMesh) {
+        return;
+      }
+
+      object.castShadow = true;
+      object.receiveShadow = true;
+    });
+
+    scene.add(market);
+
+    loadingStatus.textContent = "Гра готова";
+
+    setTimeout(() => {
+      loadingScreen.classList.add("ready");
+    }, 400);
+
+    console.log("market.glb успішно завантажено");
+  },
+
+  (progress) => {
+    if (!progress.total) {
+      return;
+    }
+
+    const percent = Math.round(
+      (progress.loaded / progress.total) * 100
+    );
+
+    loadingStatus.textContent =
+      `Завантаження карти: ${percent}%`;
+  },
+
+  (error) => {
+    console.error("Помилка market.glb:", error);
+
+    loadingStatus.textContent =
+      "Не вдалося завантажити карту";
+  }
 );
 
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
+function centerAndScaleMarket(market) {
+  market.updateMatrixWorld(true);
+
+  const box = new THREE.Box3().setFromObject(market);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+
+  market.position.x -= center.x;
+  market.position.z -= center.z;
+  market.position.y -= box.min.y;
+
+  const longestSide = Math.max(size.x, size.z);
+
+  if (longestSide > 0) {
+    const targetSize = 18;
+    const scale = targetSize / longestSide;
+
+    market.scale.setScalar(scale);
+  }
+}
 
 /* Нижнє меню */
 const panels = {
@@ -178,12 +238,5 @@ renderer.setAnimationLoop(() => {
   controls.update();
   renderer.render(scene, camera);
 });
-
-/* Прибираємо завантаження */
-loadingStatus.textContent = "Гра готова";
-
-setTimeout(() => {
-  loadingScreen.classList.add("ready");
-}, 400);
 
 console.log("Чистий AutoBazar 3D запущено");
