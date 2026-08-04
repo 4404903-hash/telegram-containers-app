@@ -1,3 +1,4 @@
+console.log("AUTOBAZAR CAMERA BUILD 3");
 import { GLTFLoader } from
   "three/addons/loaders/GLTFLoader.js";
 import * as THREE from "three";
@@ -37,9 +38,10 @@ const camera = new THREE.OrthographicCamera(
 
 /*
  * Камера прямо перед парковкою.
- * Нахил до землі приблизно 55 градусів.
+ * Приблизно 55° від вертикалі:
+ * видно фасад офісу та глибину паркомісць.
  */
-camera.position.set(0, 15, 10.5);
+camera.position.set(0, 10, 15);
 camera.lookAt(0, 0, 0);
 camera.zoom = 1;
 camera.updateProjectionMatrix();
@@ -138,6 +140,15 @@ loader.load(
     });
 
     scene.add(market);
+
+    camera.position.set(0, 10, 15);
+    camera.zoom = 1;
+
+    controls.target.set(0, 0, 0);
+
+    camera.lookAt(controls.target);
+    camera.updateProjectionMatrix();
+    controls.update();
 
         loadingStatus.textContent = "Гра готова";
 
@@ -315,13 +326,3 @@ renderer.setAnimationLoop(() => {
 });
 
 console.log("Чистий AutoBazar 3D запущено");
-
-const debugGrid = new THREE.GridHelper(
-  60,
-  30,
-  0xffffff,
-  0x607d8b
-);
-
-debugGrid.position.y = -0.01;
-scene.add(debugGrid);
