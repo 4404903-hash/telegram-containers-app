@@ -116,13 +116,15 @@ const loader = new GLTFLoader();
 
 loadingStatus.textContent = "Завантаження 3D-карти…";
 
+let currentViewSize = 50;
+
 loader.load(
   "/assets/models/market.glb",
 
   (gltf) => {
     const market = gltf.scene;
 
-    centerAndScaleMarket(market);
+    prepareAndFrameMarket(market);
 
     market.traverse((object) => {
       if (!object.isMesh) {
@@ -135,16 +137,7 @@ loader.load(
 
     scene.add(market);
 
-    camera.position.set(0, 15, 10.5);
-    camera.zoom = 1;
-
-    controls.target.set(0, 0, 0);
-
-    camera.lookAt(controls.target);
-    camera.updateProjectionMatrix();
-    controls.update();
-
-    loadingStatus.textContent = "Гра готова";
+        loadingStatus.textContent = "Гра готова";
 
     setTimeout(() => {
       loadingScreen.classList.add("ready");
@@ -174,53 +167,69 @@ loader.load(
   }
 );
 
-function centerAndScaleMarket(market) {
+function prepareAndFrameMarket(market) {
   market.updateMatrixWorld(true);
 
-  /*
-   * Спочатку знаходимо центр початкової моделі.
-   */
-  const originalBox =
-    new THREE.Box3().setFromObject(market);
+  const box = new THREE.Box3().setFromObject(market);
 
-  const originalCenter =
-    originalBox.getCenter(new THREE.Vector3());
-
-  const originalSize =
-    originalBox.getSize(new THREE.Vector3());
-
-  /*
-   * Переміщуємо центр карти в координату 0,0,0.
-   */
-  market.position.x -= originalCenter.x;
-  market.position.y -= originalCenter.y;
-  market.position.z -= originalCenter.z;
-
-  /*
-   * Масштабуємо карту приблизно до 18 одиниць.
-   */
-  const longestSide = Math.max(
-    originalSize.x,
-    originalSize.z
-  );
-
-  if (longestSide > 0) {
-    const scale = 18 / longestSide;
-    market.scale.setScalar(scale);
+  if (box.isEmpty()) {
+    throw new Error("У market.glb немає видимої геометрії");
   }
 
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+
+  /*
+   * Правильно центруємо модель через її геометрію.
+   */
+  market.position.set(
+    -center.x,
+    -box.min.y,
+    -center.z
+  );
+
   market.updateMatrixWorld(true);
 
   /*
-   * Після масштабування ставимо нижню частину карти
-   * точно на рівень землі Y = 0.
+   * Підганяємо камеру під реальні розміри карти.
    */
-  const scaledBox =
-    new THREE.Box3().setFromObject(market);
+  const mapWidth = Math.max(size.x, 1);
+  const mapDepth = Math.max(size.z, 1);
+  const mapSize = Math.max(mapWidth, mapDepth);
 
-  market.position.y -= scaledBox.min.y;
+  const viewSize = mapSize * 1.15; currentViewSize = viewSize;
+  const aspect =
+    container.clientWidth / container.clientHeight;
 
-  market.updateMatrixWorld(true);
+  camera.left = -(viewSize * aspect) / 2;
+  camera.right = (viewSize * aspect) / 2;
+  camera.top = viewSize / 2;
+  camera.bottom = -viewSize / 2;
+
+  /*
+   * Камера прямо перед парковкою,
+   * із нахилом приблизно 55°.
+   */
+  const distance = mapSize * 0.85;
+
+  camera.position.set(
+    0,
+    distance,
+    distance * 0.7
+  );
+
+  camera.near = 0.1;
+  camera.far = mapSize * 10;
+  camera.zoom = 1;
+
+  controls.target.set(0, 0, 0);
+
+  camera.lookAt(controls.target);
+  camera.updateProjectionMatrix();
+  controls.update();
+
+  console.log("Розмір карти:", size);
+  console.log("Центр карти:", center);
 }
 
 /* Нижнє меню */
@@ -265,18 +274,20 @@ document
 
 /* Розмір сцени */
 function resizeScene() {
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const width =
+    container.clientWidth || window.innerWidth;
+
+  const height =
+    container.clientHeight || window.innerHeight;
 
   renderer.setSize(width, height, false);
 
-  const aspect = width / height;
-  const viewHeight = 20;
+  const aspect = width / Math.max(height, 1);
 
-  camera.left = -(viewHeight * aspect) / 2;
-  camera.right = (viewHeight * aspect) / 2;
-  camera.top = viewHeight / 2;
-  camera.bottom = -viewHeight / 2;
+  camera.left = -(currentViewSize * aspect) / 2;
+  camera.right = (currentViewSize * aspect) / 2;
+  camera.top = currentViewSize / 2;
+  camera.bottom = -currentViewSize / 2;
 
   camera.updateProjectionMatrix();
 }
@@ -296,3 +307,13 @@ renderer.setAnimationLoop(() => {
 });
 
 console.log("Чистий AutoBazar 3D запущено");
+
+const debugGrid = new THREE.GridHelper(
+  60,
+  30,
+  0xffffff,
+  0x607d8b
+);
+
+debugGrid.position.y = -0.01;
+scene.add(debugGrid);
