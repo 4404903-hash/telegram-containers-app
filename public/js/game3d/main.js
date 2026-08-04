@@ -33,15 +33,6 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-/*
- * Камера прямо перед парковкою.
- * Приблизно 55° від вертикалі:
- * видно фасад офісу та глибину паркомісць.
- */
-camera.position.set(14, 12, 14);
-camera.lookAt(0, 0, 0);
-camera.updateProjectionMatrix();
-
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   powerPreference: "high-performance"
@@ -133,11 +124,7 @@ loader.load(
 
     scene.add(market);
 
-    camera.position.set(14, 12, 14);
-    camera.lookAt(0, 0, 0);
-    camera.zoom = 1;
-
-    controls.target.set(0, 0, 0);
+        controls.target.set(0, 0, 0);
 
     camera.lookAt(controls.target);
     camera.updateProjectionMatrix();
