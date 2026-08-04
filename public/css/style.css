@@ -1792,3 +1792,30 @@ textarea {
 .world {
   will-change: transform;
 }
+#world .market-ground,
+#world .tree-line,
+#world .outside-road,
+#world .market-fence,
+#world .market-gate,
+#world .main-lane,
+#world .lane-markings,
+#world .crosswalk,
+#world .side-lane,
+#world .parking-label,
+#world .office {
+  display: none !important;
+}
+
+.three-market {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.three-market canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
