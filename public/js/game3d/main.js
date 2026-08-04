@@ -85,6 +85,8 @@ const controls = new OrbitControls(
 controls.target.set(0, 0, 0);
 
 controls.enableRotate = false;
+controls.minPolarAngle = Math.PI * 0.30;
+controls.maxPolarAngle = Math.PI * 0.30;
 controls.enablePan = true;
 controls.enableZoom = true;
 controls.enableDamping = true;
@@ -214,9 +216,15 @@ function prepareAndFrameMarket(market) {
 
   camera.position.set(
     0,
-    distance,
-    distance * 0.7
-  );
+    distance * 0.65,
+    distance * 1.25
+);
+
+camera.lookAt(
+    0,
+    0,
+    0
+);
 
   camera.near = 0.1;
   camera.far = mapSize * 10;
