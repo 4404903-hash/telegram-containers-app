@@ -1772,3 +1772,10 @@ textarea {
  * 2D-офіс і персонажа поки лишаємо.
  * Їх перенесемо у 3D на наступних етапах.
  */
+ .player,
+.remote-players,
+.joystick-wrap,
+.joystick-base,
+.joystick-stick {
+  display: none !important;
+}
