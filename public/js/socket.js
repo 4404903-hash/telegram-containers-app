@@ -22,10 +22,7 @@ if (crystalCount) {
         officeBonusDot.classList.toggle('hidden', !dailyBonusAvailable);
     updateOfficeBonusState();
     const displayName = user.name || telegramDisplayName();
-    const playerName = $('#playerName');
     const headerPlayerName = $('#headerPlayerName');
-    if (playerName)
-        playerName.textContent = displayName;
     if (headerPlayerName)
         headerPlayerName.textContent = displayName;
     const own = listings.find(l => String(l.sellerId) === String(user.id));
@@ -39,7 +36,6 @@ if (crystalCount) {
             updateNearbyCars();
         });
     });
-    emitPlayerUpdate(false);
 });
 socket.on('auth:error', toast);
 socket.on('listing:error', toast);
@@ -51,9 +47,6 @@ socket.on('world:listings', x => { listings = x || []; renderSlots(); if (user) 
     if (!$('#myCarsModal').classList.contains('hidden'))
         renderMyCars();
 } });
-socket.on('world:players', x => { players = x || []; renderRemotePlayers(); });
-socket.on('player:updated', p => { const i = players.findIndex(x => String(x.id) === String(p.id)); i >= 0 ? players[i] = p : players.push(p); renderRemotePlayers(); });
-socket.on('player:left', p => { players = players.filter(x => String(x.id) !== String(p.id)); renderRemotePlayers(); });
 socket.on('chat:new', m => { messages.push(m); toast(`Нове повідомлення від ${m.fromName}`); renderConversations(); if (activeChat && sameChatMessage(m, activeChat)) {
     markChatRead();
     renderChat();

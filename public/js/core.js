@@ -11,7 +11,16 @@ tg?.expand();
 tg?.disableVerticalSwipes?.();
 const MAP_SIZE = 2000, CENTER = 1000, INTERACTION_RADIUS = 150, VIP_PRICE = 10, VIP_SLOTS = 10, TOTAL_SLOTS = 30;
 const COLOR_NAMES = { black: 'Чорний', white: 'Білий', silver: 'Срібний', red: 'Червоний', blue: 'Синій', green: 'Зелений', yellow: 'Жовтий', purple: 'Фіолетовий' };
-let user = null, listings = [], messages = [], players = [], selected = null, activeChat = null, pos = { x: 1000, y: 1480 }, crystals = 0, runStopTimer = null, joystickFrame = null, pendingSale = null, zoom = .5, dailyBonusAvailable = false, lastCreatedListingId = null;
+let user = null;
+let listings = [];
+let messages = [];
+let selected = null;
+let activeChat = null;
+let crystals = 0;
+let pendingSale = null;
+let zoom = 0.5;
+let dailyBonusAvailable = false;
+let lastCreatedListingId = null;
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
 function show(id) { $$('.screen').forEach(x => x.classList.toggle('active', x.id === id)); }
