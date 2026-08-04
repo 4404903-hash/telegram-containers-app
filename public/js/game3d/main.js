@@ -1,4 +1,3 @@
-console.log("AUTOBAZAR CAMERA BUILD 3");
 import { GLTFLoader } from
   "three/addons/loaders/GLTFLoader.js";
 import * as THREE from "three";
@@ -27,13 +26,11 @@ if (telegram) {
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8faebc);
 
-const camera = new THREE.OrthographicCamera(
-  -10,
-  10,
-  10,
-  -10,
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
   0.1,
-  200
+  1000
 );
 
 /*
@@ -41,9 +38,8 @@ const camera = new THREE.OrthographicCamera(
  * Приблизно 55° від вертикалі:
  * видно фасад офісу та глибину паркомісць.
  */
-camera.position.set(0, 10, 15);
+camera.position.set(0, 12, 20);
 camera.lookAt(0, 0, 0);
-camera.zoom = 1;
 camera.updateProjectionMatrix();
 
 const renderer = new THREE.WebGLRenderer({
@@ -87,8 +83,6 @@ const controls = new OrbitControls(
 controls.target.set(0, 0, 0);
 
 controls.enableRotate = false;
-controls.minPolarAngle = Math.PI * 0.30;
-controls.maxPolarAngle = Math.PI * 0.30;
 controls.enablePan = true;
 controls.enableZoom = true;
 controls.enableDamping = true;
@@ -103,8 +97,8 @@ controls.zoomSpeed = 0.8;
  */
 controls.screenSpacePanning = false;
 
-controls.minZoom = 0.55;
-controls.maxZoom = 2.5;
+controls.minDistance = 8;
+controls.maxDistance = 50;
 
 controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
 controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
@@ -119,8 +113,6 @@ controls.update();
 const loader = new GLTFLoader();
 
 loadingStatus.textContent = "Завантаження 3D-карти…";
-
-let currentViewSize = 50;
 
 loader.load(
   "/assets/models/market.glb",
@@ -210,42 +202,33 @@ function prepareAndFrameMarket(market) {
   const mapDepth = Math.max(size.z, 1);
   const mapSize = Math.max(mapWidth, mapDepth);
 
-  const viewSize = mapSize * 1.15; currentViewSize = viewSize;
   const aspect =
-    container.clientWidth / container.clientHeight;
+  container.clientWidth / Math.max(container.clientHeight, 1);
 
-  camera.left = -(viewSize * aspect) / 2;
-  camera.right = (viewSize * aspect) / 2;
-  camera.top = viewSize / 2;
-  camera.bottom = -viewSize / 2;
+camera.aspect = aspect;
 
-  /*
-   * Камера прямо перед парковкою,
-   * із нахилом приблизно 55°.
-   */
-  const distance = mapSize * 0.85;
+/*
+ * Чіткий нахил приблизно 35° над землею.
+ * Парковка буде видна спереду, а не вертикально зверху.
+ */
+const distance = mapSize * 1.35;
 
-  camera.position.set(
-    0,
-    distance * 0.65,
-    distance * 1.25
+camera.position.set(
+  0,
+  mapSize * 0.75,
+  distance
 );
 
-camera.lookAt(
-    0,
-    0,
-    0
-);
+camera.near = 0.1;
+camera.far = mapSize * 20;
 
-  camera.near = 0.1;
-  camera.far = mapSize * 10;
-  camera.zoom = 1;
+controls.target.set(0, 0, 0);
 
-  controls.target.set(0, 0, 0);
+camera.lookAt(controls.target);
+camera.updateProjectionMatrix();
+controls.update();
 
-  camera.lookAt(controls.target);
-  camera.updateProjectionMatrix();
-  controls.update();
+console.log("Нова PerspectiveCamera:", camera.position);
 
   console.log("Розмір карти:", size);
   console.log("Центр карти:", center);
@@ -301,13 +284,7 @@ function resizeScene() {
 
   renderer.setSize(width, height, false);
 
-  const aspect = width / Math.max(height, 1);
-
-  camera.left = -(currentViewSize * aspect) / 2;
-  camera.right = (currentViewSize * aspect) / 2;
-  camera.top = currentViewSize / 2;
-  camera.bottom = -currentViewSize / 2;
-
+  camera.aspect = width / Math.max(height, 1);
   camera.updateProjectionMatrix();
 }
 
