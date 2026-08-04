@@ -20,8 +20,31 @@ const camera = new THREE.OrthographicCamera(
   200
 );
 
-camera.position.set(14, 18, 16);
+/*
+ * Камера дивиться прямо на передню частину парковки.
+ * Кут до землі приблизно 56 градусів.
+ */
+camera.position.set(0, 18, 12);
 camera.lookAt(0, 0, 0);
+controls.target.set(0, 0, 0);
+
+controls.enableRotate = false;
+controls.enablePan = true;
+controls.enableZoom = true;
+controls.enableDamping = true;
+
+controls.screenSpacePanning = true;
+
+controls.minZoom = 0.65;
+controls.maxZoom = 2.4;
+
+controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+
+controls.touches.ONE = THREE.TOUCH.PAN;
+controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+
+controls.update();
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,

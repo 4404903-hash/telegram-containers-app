@@ -10,7 +10,6 @@ socket.on('auth:ok', d => {
     listings = d.listings || [];
     messages = d.messages || [];
     players = d.players || [];
-    crystals = Number(d.crystals || 0);
     const crystalCount = $('#crystalCount');
 
 if (crystalCount) {
@@ -39,8 +38,6 @@ if (crystalCount) {
 });
 socket.on('auth:error', toast);
 socket.on('listing:error', toast);
-socket.on('vip:purchase-required', d => { pendingSale = d?.payload || pendingSale; $('#vipModal').classList.remove('hidden'); });
-socket.on('balance:update', d => { crystals = Number(d.crystals || 0); $('#crystalCount').textContent = crystals; });
 socket.on('listing:created', x => { pendingSale = null; lastCreatedListingId = x.id; listings.push(x); show('marketScreen'); resetWizard(); toast(`Авто поставлено на місце №${x.slotId ?? x.spot}`); render(); });
 socket.on('world:listings', x => { listings = x || []; renderSlots(); if (user) {
     $('#myCarsCount').textContent = myActiveCars().length;
@@ -51,17 +48,8 @@ socket.on('chat:new', m => { messages.push(m); toast(`Нове повідомл�
     markChatRead();
     renderChat();
 } });
-socket.on('chat:sent', m => { messages.push(m); $('#chatText').value = ''; renderConversations(); renderChat(); });
-socket.on('daily:result', d => { if (d.ok) {
-    crystals = Number(d.crystals);
-    dailyBonusAvailable = false;
-    $('#officeBonusDot').classList.add('hidden');
-    updateOfficeBonusState();
-    $('#crystalCount').textContent = crystals;
-    toast(`Щоденний бонус: +${d.reward} 💎`);
-}
-else
-    toast(d.message); });
+
+    toast(d.message); ;
 socket.on('seller:rating-updated', d => { listings.forEach(l => { if (String(l.sellerId) === String(d.sellerId)) {
     l.sellerRating = d.rating;
     l.ratingCount = d.ratingCount;

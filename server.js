@@ -10,9 +10,7 @@ const PORT = Number(process.env.PORT || 3000);
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const DEMO_MODE = String(process.env.DEMO_MODE || 'true') === 'true';
-const VIP_PRICE = 10;
-const VIP_SLOTS = 10;
-const TOTAL_SLOTS = 30;
+const TOTAL_SLOTS = 20;
 
 if (!DATABASE_URL) {
   console.error('Помилка: DATABASE_URL не налаштована');
@@ -291,7 +289,6 @@ io.on('connection', (socket) => {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const requestVip = p?.requestVip === true || p?.requestVip === 'true';
       let slotId;
       if (requestVip) {
         const account = await client.query(`SELECT crystals FROM users WHERE id=$1 FOR UPDATE`, [user.id]);
@@ -335,32 +332,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('vip:buy-crystals', async () => {
-    if (!user) return;
-    try {
-      if (!DEMO_MODE) return socket.emit('listing:error', 'Покупка кристалів через Telegram Payments ще не підключена');
-      const result = await pool.query(`UPDATE users SET crystals=crystals+20, updated_at=NOW() WHERE id=$1 RETURNING crystals`, [user.id]);
-      socket.emit('balance:update', { crystals: Number(result.rows[0].crystals) });
-      socket.emit('listing:error', 'Демо: додано 20 кристалів');
-    } catch (error) { console.error(error); }
-  });
-
-
-  socket.on('daily:claim', async () => {
-    if (!user) return;
-    try {
-      const reward = 5;
-      const result = await pool.query(`
-        UPDATE users SET crystals=crystals+$1, last_daily_bonus=CURRENT_DATE, updated_at=NOW()
-        WHERE id=$2 AND (last_daily_bonus IS NULL OR last_daily_bonus < CURRENT_DATE)
-        RETURNING crystals
-      `, [reward, user.id]);
-      if (!result.rowCount) return socket.emit('daily:result', { ok:false, message:'Сьогодні бонус уже отримано' });
-      socket.emit('daily:result', { ok:true, reward, crystals:Number(result.rows[0].crystals) });
-    } catch (error) { console.error('Daily bonus error:', error); }
-  });
-
-  socket.on('seller:rate', async (p) => {
+    socket.on('seller:rate', async (p) => {
     if (!user) return;
     const sellerId=String(p?.sellerId||'');
     const rating=Number(p?.rating);
