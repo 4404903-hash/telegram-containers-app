@@ -86,7 +86,7 @@ scene.add(grid);
 const loader = new GLTFLoader();
 
 loader.load(
-  "/assets/models/cars/sedan.glb",
+  "/assets/models/sedan.glb",
 
   (gltf) => {
     const car = gltf.scene;

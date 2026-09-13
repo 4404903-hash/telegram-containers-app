@@ -1,411 +1,192 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-const crypto = require('crypto');
-const { Pool } = require('pg');
 require('dotenv').config();
+const express = require('express');
+const http = require('node:http');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { Server } = require('socket.io');
+const { database, migrate } = require('./server/db');
+const { validateTelegram } = require('./server/auth');
+const { deliverNotifications } = require('./server/notifications');
+const COLORS = ['black','white','silver','red','blue','green','yellow','purple'];
+const TOTAL_SLOTS = 100;
+const fail = text => { throw new Error(text); };
+const listing = r => ({id:r.id,sellerId:r.seller_id,sellerName:r.seller_name,brand:r.brand,model:r.model,
+  year:Number(r.year),price:Number(r.price),description:r.description,color:r.color,bodyType:r.body_type,
+  slotId:r.slot_id,status:r.status,createdAt:r.created_at,expiresAt:r.expires_at,
+  sellerRating:Number(r.seller_rating||0),ratingCount:Number(r.rating_count||0)});
+const message = r => ({id:r.id,listingId:r.listing_id,listingTitle:r.listing_title,fromUserId:r.from_user_id,
+  fromName:r.from_name,toUserId:r.to_user_id,text:r.text,read:r.is_read,createdAt:r.created_at});
 
-const PORT = Number(process.env.PORT || 3000);
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const DATABASE_URL = process.env.DATABASE_URL || '';
-const DEMO_MODE = String(process.env.DEMO_MODE || 'true') === 'true';
-const TOTAL_SLOTS = 20;
-
-if (!DATABASE_URL) {
-  console.error('Помилка: DATABASE_URL не налаштована');
-  process.exit(1);
-}
-
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
-
-pool.on('error', (error) => console.error('PostgreSQL error:', error));
-
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-
-app.use(express.json());
-app.get('/version', (_req, res) => res.json({ version: '6.1.0', build: '50-large-slots-menu-office-bonus' }));
-app.use(express.static(path.join(__dirname, 'public'), {
-  etag: false,
-  lastModified: false,
-  setHeaders(res) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-  },
-}));
-
-async function initDatabase() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      username TEXT NOT NULL DEFAULT '',
-      crystals INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      last_daily_bonus DATE
-    )
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS listings (
-      id TEXT PRIMARY KEY,
-      seller_id TEXT NOT NULL,
-      seller_name TEXT NOT NULL,
-      brand TEXT NOT NULL,
-      model TEXT NOT NULL,
-      year INTEGER NOT NULL,
-      price NUMERIC NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      color TEXT NOT NULL DEFAULT 'black',
-      slot_id INTEGER,
-      zone INTEGER NOT NULL DEFAULT 1,
-      spot INTEGER,
-      status TEXT NOT NULL DEFAULT 'active',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT 'black'`);
-  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS slot_id INTEGER`);
-  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS zone INTEGER NOT NULL DEFAULT 1`);
-  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS spot INTEGER`);
-
-  await pool.query(`
-    UPDATE listings
-    SET slot_id = COALESCE(slot_id, spot, ((zone - 1) * 20) + 1),
-        spot = COALESCE(spot, slot_id)
-    WHERE slot_id IS NULL OR spot IS NULL
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id TEXT PRIMARY KEY,
-      listing_id TEXT NOT NULL,
-      listing_title TEXT NOT NULL,
-      from_user_id TEXT NOT NULL,
-      from_name TEXT NOT NULL,
-      to_user_id TEXT NOT NULL,
-      text TEXT NOT NULL,
-      is_read BOOLEAN NOT NULL DEFAULT FALSE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  await pool.query(`DROP INDEX IF EXISTS unique_active_listing_per_seller`);
-
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS unique_active_slot
-    ON listings (slot_id) WHERE status = 'active'
-  `);
-
-  await pool.query(`CREATE INDEX IF NOT EXISTS messages_users_idx ON messages (from_user_id, to_user_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS messages_listing_idx ON messages (listing_id)`);
-
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_bonus DATE`);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS seller_ratings (
-      seller_id TEXT NOT NULL,
-      rater_id TEXT NOT NULL,
-      rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (seller_id, rater_id)
-    )
-  `);
-  await pool.query(`CREATE INDEX IF NOT EXISTS seller_ratings_seller_idx ON seller_ratings (seller_id)`);
-
-
-  console.log('PostgreSQL підключено. Таблиці AutoBazar v6.1 готові');
-}
-
-function validateTelegramInitData(initData) {
-  if (!BOT_TOKEN || !initData) return null;
-  const params = new URLSearchParams(initData);
-  const hash = params.get('hash');
-  if (!hash) return null;
-  params.delete('hash');
-  const check = [...params.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('\n');
-  const secret = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-  const calculated = crypto.createHmac('sha256', secret).update(check).digest('hex');
-  const a = Buffer.from(calculated, 'hex');
-  const b = Buffer.from(hash, 'hex');
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  const authDate = Number(params.get('auth_date') || 0);
-  if (!authDate || Date.now() / 1000 - authDate > 86400) return null;
-  try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
-}
-
-function mapListing(row) {
-  return {
-    id: row.id,
-    sellerId: row.seller_id,
-    sellerName: row.seller_name,
-    brand: row.brand,
-    model: row.model,
-    year: Number(row.year),
-    price: Number(row.price),
-    description: row.description,
-    color: row.color,
-    slotId: Number(row.slot_id),
-    spot: Number(row.slot_id),
-    zone: 1,
-    status: row.status,
-    createdAt: new Date(row.created_at).toISOString(),
-  };
-}
-
-function mapMessage(row) {
-  return {
-    id: row.id,
-    listingId: row.listing_id,
-    listingTitle: row.listing_title,
-    fromUserId: row.from_user_id,
-    fromName: row.from_name,
-    toUserId: row.to_user_id,
-    text: row.text,
-    read: row.is_read,
-    createdAt: new Date(row.created_at).toISOString(),
-  };
-}
-
-const onlineUsers = new Map();
-const onlinePlayers = new Map();
-
-async function ensureUser(user) {
-  const initialCrystals = DEMO_MODE ? 30 : 0;
-  const result = await pool.query(`
-    INSERT INTO users (id, name, username, crystals)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (id) DO UPDATE
-      SET name = EXCLUDED.name,
-          username = EXCLUDED.username,
-          updated_at = NOW()
-    RETURNING crystals
-  `, [user.id, user.name, user.username || '', initialCrystals]);
-  return { crystals: Number(result.rows[0].crystals) };
-}
-
-async function getPublicListings() {
-  const result = await pool.query(`
-    SELECT l.*, COALESCE(AVG(sr.rating),0) AS seller_rating, COUNT(sr.rating)::int AS rating_count
-    FROM listings l
-    LEFT JOIN seller_ratings sr ON sr.seller_id=l.seller_id
-    WHERE l.status='active'
-    GROUP BY l.id
-    ORDER BY l.slot_id ASC
-  `);
-  return result.rows.map(row => ({ ...mapListing(row), sellerOnline: onlineUsers.has(String(row.seller_id)), sellerRating: Number(row.seller_rating), ratingCount: Number(row.rating_count) }));
-}
-
-
-function getPublicPlayers() {
-  return [...onlinePlayers.values()].map(({ socketId, ...player }) => player);
-}
-
-async function getUserMessages(userId) {
-  const result = await pool.query(`
-    SELECT * FROM messages
-    WHERE from_user_id=$1 OR to_user_id=$1
-    ORDER BY created_at ASC
-  `, [userId]);
-  return result.rows.map(mapMessage);
-}
-
-async function emitWorld() {
-  const listings = await getPublicListings();
-  io.emit('world:listings', listings);
-  io.emit('world:players', getPublicPlayers());
-}
-
-async function firstFreeSlot(client, min, max) {
-  const result = await client.query(`
-    SELECT slot_id FROM listings
-    WHERE status='active' AND slot_id BETWEEN $1 AND $2
-  `, [min, max]);
-  const used = new Set(result.rows.map(r => Number(r.slot_id)));
-  const free = [];
-  for (let i = min; i <= max; i += 1) if (!used.has(i)) free.push(i);
-  return free.length ? free[0] : null;
-}
-
-io.on('connection', (socket) => {
-  let user = null;
-
-  socket.on('auth', async (payload) => {
+async function createGame(env=process.env, suppliedPool) {
+  const demo = env.DEMO_MODE === 'true';
+  if (!demo && !env.BOT_TOKEN) throw Error('BOT_TOKEN is required');
+  if (!demo && !/^https:\/\//.test(env.APP_URL||'')) throw Error('HTTPS APP_URL is required');
+  if (demo && env.NODE_ENV === 'production') throw Error('DEMO_MODE must be false in production');
+  const pool = suppliedPool || await database(env); await migrate(pool);
+  const app = express(), server=http.createServer(app);
+  const io=new Server(server,{maxHttpBufferSize:32768});
+  app.disable('x-powered-by');
+  app.use((_q,r,next)=>{r.setHeader('X-Content-Type-Options','nosniff');r.setHeader('Referrer-Policy','same-origin');next();});
+  app.get('/api/config',(_q,r)=>r.json({demo,totalSlots:TOTAL_SLOTS,vipPrice:10,developer:env.DEVELOPER_USERNAME||'s_5994',notifications:!!env.BOT_TOKEN}));
+  app.get('/version',(_q,r)=>r.json({version:'8.0.0',build:'blender-market-100'}));
+  app.get('/health',async(_q,r)=>{try {await pool.query('SELECT 1');r.json({ok:true,slots:TOTAL_SLOTS});}catch{r.status(503).json({ok:false});}});
+  app.use('/vendor/three',express.static(path.join(__dirname,'node_modules/three')));
+  app.use(express.static(path.join(__dirname,'public'),{maxAge:0}));
+  const publicListings=async()=> (await pool.query(`SELECT l.*,
+    COALESCE((SELECT AVG(rating) FROM seller_ratings WHERE seller_id=l.seller_id),0) seller_rating,
+    (SELECT COUNT(*) FROM seller_ratings WHERE seller_id=l.seller_id) rating_count
+    FROM listings l WHERE status='active' AND expires_at>NOW() ORDER BY slot_id`)).rows.map(listing);
+  const broadcast=async()=>io.emit('world:listings',await publicListings());
+  if(demo) app.post('/api/demo/populate',async(_q,res)=>{
+    const c=await pool.connect();
     try {
-      const tgUser = validateTelegramInitData(payload?.initData || '');
-      if (tgUser) {
-        user = { id: String(tgUser.id), name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' '), username: tgUser.username || '' };
-      } else if (DEMO_MODE) {
-        user = { id: String(payload?.demoUser?.id || `demo-${socket.id}`), name: String(payload?.demoUser?.name || 'Demo Player').slice(0, 40), username: '' };
-      } else {
-        return socket.emit('auth:error', 'Не вдалося підтвердити Telegram-користувача');
+      await c.query('BEGIN');await c.query('LOCK TABLE listings IN SHARE ROW EXCLUSIVE MODE');
+      await c.query(`INSERT INTO users(id,name,crystals) VALUES('demo-showcase-2026','Демо продавець',30) ON CONFLICT(id) DO NOTHING`);
+      const names=[['BMW','320i'],['Audi','A4'],['Volkswagen','Golf'],['Toyota','Camry'],['Mercedes-Benz','C 200'],['Skoda','Octavia'],['Renault','Megane'],['Volvo','XC60']];
+      for(let i=1;i<=30;i++) {
+        const [brand,model]=names[(i-1)%names.length];
+        await c.query(`INSERT INTO listings(id,seller_id,seller_name,brand,model,year,price,description,color,body_type,slot_id,spot)
+          SELECT $1,'demo-showcase-2026','Демо продавець',$2,$3,$4,$5,'Демонстраційне оголошення для перевірки гри. Це не реальний продаж.',$6,$7,$8,$8
+          WHERE NOT EXISTS(SELECT 1 FROM listings WHERE status='active' AND slot_id=$8)
+          ON CONFLICT(id) DO NOTHING`,['example-'+i,brand,model,2015+i%9,9500+i*800,COLORS[(i-1)%8],['sedan','sedan','hatchback','suv'][i%4],i]);
       }
-
-      const account = await ensureUser(user);
-      onlineUsers.set(user.id, socket.id);
-      onlinePlayers.set(user.id, { id: user.id, name: user.name, x: 1000, y: 1480, moving: false, faceLeft: false, socketId: socket.id });
-      socket.join(`user:${user.id}`);
-
-      const [listings, messages] = await Promise.all([getPublicListings(), getUserMessages(user.id)]);
-      const bonusCheck = await pool.query(`SELECT last_daily_bonus, CURRENT_DATE AS today FROM users WHERE id=$1`, [user.id]);
-      socket.emit('auth:ok', { user, listings, messages, players: getPublicPlayers(), crystals: account.crystals, dailyBonusAvailable: String(bonusCheck.rows[0]?.last_daily_bonus || '') !== String(bonusCheck.rows[0]?.today || '') });
-      await emitWorld();
-    } catch (error) {
-      console.error('Auth error:', error);
-      socket.emit('auth:error', 'Помилка сервера під час входу');
-    }
+      await c.query('COMMIT');res.json({ok:true});
+    } catch(e){await c.query('ROLLBACK');res.status(500).json({ok:false});} finally {c.release();}
+    await broadcast();
   });
-
-  socket.on('player:update', (p) => {
-    if (!user) return;
-    const pl = onlinePlayers.get(user.id);
-    if (!pl) return;
-    const x = Number(p?.x), y = Number(p?.y);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    Object.assign(pl, { x: Math.max(0, Math.min(2000, x)), y: Math.max(0, Math.min(2000, y)), moving: !!p.moving, faceLeft: !!p.faceLeft });
-    socket.broadcast.emit('player:updated', { id: pl.id, name: pl.name, x: pl.x, y: pl.y, moving: pl.moving, faceLeft: pl.faceLeft });
-  });
-
-  socket.on('listing:create', async (p) => {
-    if (!user) return;
-    const price = Number(p?.price), year = Number(p?.year);
-    const brand = String(p?.brand || '').trim().slice(0, 30);
-    const model = String(p?.model || '').trim().slice(0, 30);
-    const description = String(p?.description || '').trim().slice(0, 700);
-    const color = String(p?.color || 'black').toLowerCase().slice(0, 20);
-    if (!brand || !model || !description || !Number.isFinite(price) || price <= 0 || !Number.isInteger(year) || year < 1950 || year > new Date().getFullYear() + 1) {
-      return socket.emit('listing:error', 'Перевірте всі поля оголошення');
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      let slotId;
-      if (requestVip) {
-        const account = await client.query(`SELECT crystals FROM users WHERE id=$1 FOR UPDATE`, [user.id]);
-        const crystals = Number(account.rows[0]?.crystals || 0);
-        if (crystals < VIP_PRICE) {
-          await client.query('ROLLBACK');
-          return socket.emit('vip:purchase-required', { price: VIP_PRICE, payload: p });
-        }
-        slotId = await firstFreeSlot(client, 1, VIP_SLOTS);
-        if (slotId === null) {
-          await client.query('ROLLBACK');
-          return socket.emit('listing:error', 'Усі 10 VIP-місць зайняті');
-        }
-        const balance = await client.query(`UPDATE users SET crystals=crystals-$1, updated_at=NOW() WHERE id=$2 RETURNING crystals`, [VIP_PRICE, user.id]);
-        socket.emit('balance:update', { crystals: Number(balance.rows[0].crystals) });
-      } else {
-        slotId = await firstFreeSlot(client, VIP_SLOTS + 1, TOTAL_SLOTS);
-        if (slotId === null) {
-          await client.query('ROLLBACK');
-          return socket.emit('listing:error', 'Усі безкоштовні місця зайняті');
-        }
-      }
-
-      const result = await client.query(`
-        INSERT INTO listings
-          (id, seller_id, seller_name, brand, model, year, price, description, color, slot_id, spot, zone, status)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10,1,'active')
-        RETURNING *
-      `, [crypto.randomUUID(), user.id, user.name, brand, model, year, price, description, color, slotId]);
-
-      await client.query('COMMIT');
-      const listing = mapListing(result.rows[0]);
-      socket.emit('listing:created', listing);
-      await emitWorld();
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Create listing error:', error);
-      socket.emit('listing:error', error.code === '23505' ? 'Місце вже зайняте. Спробуйте ще раз' : 'Не вдалося виставити машину');
-    } finally {
-      client.release();
-    }
-  });
-
-    socket.on('seller:rate', async (p) => {
-    if (!user) return;
-    const sellerId=String(p?.sellerId||'');
-    const rating=Number(p?.rating);
-    if (!sellerId || sellerId===user.id || !Number.isInteger(rating) || rating<1 || rating>5) return;
-    try {
-      await pool.query(`INSERT INTO seller_ratings (seller_id,rater_id,rating) VALUES ($1,$2,$3)
-        ON CONFLICT (seller_id,rater_id) DO UPDATE SET rating=EXCLUDED.rating,updated_at=NOW()`, [sellerId,user.id,rating]);
-      const r=await pool.query(`SELECT COALESCE(AVG(rating),0) avg, COUNT(*)::int count FROM seller_ratings WHERE seller_id=$1`,[sellerId]);
-      io.emit('seller:rating-updated',{sellerId,rating:Number(r.rows[0].avg),ratingCount:Number(r.rows[0].count)});
-    } catch(error){console.error('Rating error:',error)}
-  });
-
-  socket.on('listing:remove', async (id) => {
-    if (!user) return;
-    const result = await pool.query(`UPDATE listings SET status='removed' WHERE id=$1 AND seller_id=$2 AND status='active' RETURNING id`, [String(id), user.id]);
-    if (result.rowCount) await emitWorld();
-  });
-
-  socket.on('chat:send', async (p) => {
-    if (!user) return;
-    const text = String(p?.text || '').trim().slice(0, 700);
-    const toUserId = String(p?.toUserId || '');
-    if (!text || !toUserId || toUserId === user.id) return;
-    const listingResult = await pool.query(`SELECT * FROM listings WHERE id=$1 LIMIT 1`, [String(p?.listingId || '')]);
-    if (!listingResult.rowCount) return;
-    const listing = mapListing(listingResult.rows[0]);
-    const participant = String(listing.sellerId) === user.id ? toUserId : String(listing.sellerId);
-    if (participant !== toUserId) return;
-    if (String(listing.sellerId) === user.id) {
-      const known = await pool.query(`SELECT id FROM messages WHERE listing_id=$1 AND ((from_user_id=$2 AND to_user_id=$3) OR (from_user_id=$3 AND to_user_id=$2)) LIMIT 1`, [listing.id, user.id, toUserId]);
-      if (!known.rowCount) return;
-    }
-    const result = await pool.query(`
-      INSERT INTO messages (id, listing_id, listing_title, from_user_id, from_name, to_user_id, text, is_read)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,FALSE) RETURNING *
-    `, [crypto.randomUUID(), listing.id, `${listing.brand} ${listing.model}`, user.id, user.name, toUserId, text]);
-    const message = mapMessage(result.rows[0]);
-    io.to(`user:${toUserId}`).emit('chat:new', message);
-    socket.emit('chat:sent', message);
-  });
-
-  socket.on('chat:read', async (p) => {
-    if (!user) return;
-    await pool.query(`UPDATE messages SET is_read=TRUE WHERE to_user_id=$1 AND from_user_id=$2 AND listing_id=$3 AND is_read=FALSE`, [user.id, String(p?.partnerId || ''), String(p?.listingId || '')]);
-  });
-
-  socket.on('disconnect', async () => {
-    if (user && onlineUsers.get(user.id) === socket.id) {
-      onlineUsers.delete(user.id);
-      onlinePlayers.delete(user.id);
-      socket.broadcast.emit('player:left', { id: user.id });
-      try { await emitWorld(); } catch (error) { console.error(error); }
-    }
-  });
-});
-
-app.get('/health', async (_q, r) => {
-  try {
-    await pool.query('SELECT 1');
-    r.json({ ok: true, database: true, map: '2600x2600', slots: TOTAL_SLOTS });
-  } catch {
-    r.status(500).json({ ok: false, database: false });
+  async function expire() {
+    const r=await pool.query(`UPDATE listings SET status='expired' WHERE status='active' AND expires_at<=NOW() RETURNING id`);
+    if(r.rowCount) await broadcast();
   }
-});
-app.get('/{*splat}', (_q, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
-
-async function start() {
-  try {
-    await initDatabase();
-    server.listen(PORT, () => console.log(`AutoBazar v6.1 PostgreSQL: http://localhost:${PORT}`));
-  } catch (error) {
-    console.error('Не вдалося запустити сервер:', error);
-    process.exit(1);
-  }
+  io.on('connection',socket=>{
+    let user=null,authenticating=false;
+    const limits=new Map();
+    function event(name,handler,limit=30) {
+      socket.on(name,async(payload,ack)=>{
+        const respond=typeof ack==='function'?ack:()=>{};
+        try {
+          if(!user) fail('Спочатку увійдіть у гру');
+          const now=Date.now(); let bucket=limits.get(name);
+          if(!bucket || now-bucket.time>60000) {bucket={time:now,count:0};limits.set(name,bucket);}
+          if(++bucket.count>limit) fail('Забагато запитів. Зачекайте хвилину');
+          respond({ok:true,data:await handler(payload)});
+        } catch(e) {console.error(name,e.code||e.message);respond({ok:false,error:e.code?'Помилка бази даних. Спробуйте ще раз':e.message});}
+      });
+    }
+    socket.on('auth',async(p,ack)=>{
+      if(authenticating || user) return;
+      authenticating=true;
+      try {
+        let candidate=validateTelegram(p?.initData,env.BOT_TOKEN);
+        if(!candidate && demo && !p?.initData) {
+          const id=String(p?.demoUser?.id||'');
+          if(!/^demo-[a-zA-Z0-9-]{8,70}$/.test(id)) fail('Некоректний демо-профіль');
+          candidate={id,name:String(p?.demoUser?.name||'Демо гравець').slice(0,60),username:''};
+        }
+        if(!candidate) fail('Відкрийте гру через Telegram. Сеанс недійсний або завершився');
+        const result=await pool.query(`INSERT INTO users(id,name,username,crystals) VALUES($1,$2,$3,$4)
+          ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,username=EXCLUDED.username,updated_at=NOW()
+          RETURNING crystals,last_daily_bonus IS DISTINCT FROM (NOW() AT TIME ZONE 'UTC')::date AS bonus`,
+          [candidate.id,candidate.name,candidate.username,demo?30:0]);
+        user=candidate;socket.join(`user:${user.id}`);
+        const msgs=await pool.query(`SELECT * FROM messages WHERE from_user_id=$1 OR to_user_id=$1
+          ORDER BY created_at`,[user.id]);
+        const data={user,listings:await publicListings(),messages:msgs.rows.map(message),crystals:result.rows[0].crystals,dailyBonusAvailable:result.rows[0].bonus};
+        socket.emit('auth:ok',data);if(typeof ack==='function') ack({ok:true,data});
+      }catch(e){socket.emit('auth:error',e.code?'Помилка входу':e.message);if(typeof ack==='function')ack({ok:false,error:e.message});}
+      finally{authenticating=false;}
+    });
+    event('listing:create',async p=>{
+      const brand=String(p?.brand||'').trim(),model=String(p?.model||'').trim(),description=String(p?.description||'').trim();
+      const year=Number(p?.year),price=Number(p?.price),color=p?.color||'black',body=p?.bodyType||'sedan';
+      if(!brand || brand.length>30 || !model || model.length>30 || !description || description.length>700 ||
+        !Number.isInteger(year)||year<1950||year>new Date().getFullYear()+1||!Number.isFinite(price)||price<1||price>100000000||
+        !COLORS.includes(color)||!['sedan','suv','hatchback'].includes(body)) fail('Перевірте марку, модель, рік, ціну, колір та опис');
+      const vip=p.vip===true||p.vip==='on';
+      const c=await pool.connect();let value;
+      try {
+        await c.query('BEGIN');
+        await c.query('LOCK TABLE listings IN SHARE ROW EXCLUSIVE MODE');
+        await c.query(`UPDATE listings SET status='expired' WHERE status='active' AND expires_at<=NOW()`);
+        const free=await c.query(`SELECT s FROM generate_series($1::int,$2::int) s WHERE NOT EXISTS
+          (SELECT 1 FROM listings WHERE status='active' AND slot_id=s) ORDER BY s LIMIT 1`,[vip?1:11,vip?10:100]);
+        if(!free.rows.length) fail(vip?'Усі VIP-місця зайняті':'Усі звичайні місця зайняті');
+        if(vip) {
+          const balance=await c.query(`UPDATE users SET crystals=crystals-10 WHERE id=$1 AND crystals>=10 RETURNING crystals`,[user.id]);
+          if(!balance.rowCount) fail('Для VIP потрібно 10 кристалів. Отримайте щоденний бонус');
+        }
+        const r=await c.query(`INSERT INTO listings(id,seller_id,seller_name,brand,model,year,price,description,color,body_type,slot_id,spot,zone,status)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,1,'active') RETURNING *`,
+          [crypto.randomUUID(),user.id,user.name,brand,model,year,price,description,color,body,free.rows[0].s]);
+        value=listing(r.rows[0]);await c.query('COMMIT');
+      }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+      await broadcast();
+      const b=await pool.query('SELECT crystals FROM users WHERE id=$1',[user.id]);
+      io.to(`user:${user.id}`).emit('balance:update',{crystals:b.rows[0].crystals});
+      return value;
+    },10);
+    event('listing:remove',async id=>{
+      const r=await pool.query(`UPDATE listings SET status='removed' WHERE id=$1 AND seller_id=$2 AND status='active' RETURNING id`,[String(id),user.id]);
+      if(!r.rowCount) fail('Оголошення вже неактивне або належить іншому продавцю');
+      await broadcast();return {id};
+    });
+    event('daily:claim',async()=>{
+      const r=await pool.query(`UPDATE users SET crystals=crystals+5,last_daily_bonus=(NOW() AT TIME ZONE 'UTC')::date
+        WHERE id=$1 AND last_daily_bonus IS DISTINCT FROM (NOW() AT TIME ZONE 'UTC')::date RETURNING crystals`,[user.id]);
+      if(!r.rowCount) fail('Сьогодні бонус уже отримано. Новий — о 00:00 UTC');
+      io.to(`user:${user.id}`).emit('balance:update',{crystals:r.rows[0].crystals,claimed:true});return r.rows[0];
+    },5);
+    event('seller:rate',async p=>{
+      const rating=Number(p?.rating),seller=String(p?.sellerId||'');
+      if(seller===user.id||!Number.isInteger(rating)||rating<1||rating>5) fail('Некоректна оцінка');
+      const known=await pool.query(`SELECT 1 FROM messages m JOIN listings l ON l.id=m.listing_id
+        WHERE l.seller_id=$1 AND m.from_user_id=$2 AND m.to_user_id=$1 LIMIT 1`,[seller,user.id]);
+      if(!known.rowCount) fail('Оцінити продавця можна після початку діалогу');
+      await pool.query(`INSERT INTO seller_ratings(seller_id,rater_id,rating) VALUES($1,$2,$3)
+        ON CONFLICT(seller_id,rater_id) DO UPDATE SET rating=EXCLUDED.rating,updated_at=NOW()`,[seller,user.id,rating]);
+      await broadcast();return {};
+    },10);
+    event('chat:history',async p=>{
+      const r=await pool.query(`SELECT * FROM messages WHERE listing_id=$1 AND
+        ((from_user_id=$2 AND to_user_id=$3) OR (from_user_id=$3 AND to_user_id=$2)) ORDER BY created_at`,
+        [String(p?.listingId),user.id,String(p?.partnerId)]);return r.rows.map(message);
+    });
+    event('chat:send',async p=>{
+      const text=String(p?.text||'').trim(),to=String(p?.toUserId||''),clientId=String(p?.clientId||'');
+      if(!text||text.length>700||to===user.id||!to||!/^[a-zA-Z0-9-]{8,80}$/.test(clientId)) fail('Некоректне повідомлення');
+      const c=await pool.connect();let value;
+      try {
+        await c.query('BEGIN');
+        const existing=await c.query('SELECT * FROM messages WHERE from_user_id=$1 AND client_id=$2',[user.id,clientId]);
+        if(existing.rowCount){await c.query('COMMIT');return message(existing.rows[0]);}
+        const r=await c.query('SELECT * FROM listings WHERE id=$1',[String(p?.listingId)]);
+        if(!r.rowCount) fail('Оголошення не знайдено');const l=r.rows[0];
+        const known=await c.query(`SELECT 1 FROM messages WHERE listing_id=$1 AND
+          ((from_user_id=$2 AND to_user_id=$3) OR (from_user_id=$3 AND to_user_id=$2)) LIMIT 1`,[l.id,user.id,to]);
+        if(l.seller_id===user.id ? !known.rowCount : to!==l.seller_id) fail('Цей діалог вам недоступний');
+        if(!known.rowCount && (l.status!=='active'||new Date(l.expires_at)<=new Date())) fail('Термін оголошення завершився');
+        const result=await c.query(`INSERT INTO messages(id,listing_id,listing_title,from_user_id,from_name,to_user_id,text,client_id)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(from_user_id,client_id) DO UPDATE SET client_id=EXCLUDED.client_id RETURNING *`,
+          [crypto.randomUUID(),l.id,`${l.brand} ${l.model}`,user.id,user.name,to,text,clientId]);
+        value=message(result.rows[0]);
+        if(/^\d+$/.test(to) && env.BOT_TOKEN) await c.query(`INSERT INTO notification_outbox(id,recipient,text) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING`,
+          [value.id,to,`У вас нове повідомлення від ${user.name}\n${l.brand} ${l.model}\n\n${text}`]);
+        await c.query('COMMIT');
+      }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+      io.to(`user:${to}`).to(`user:${user.id}`).emit('chat:new',value);return value;
+    },30);
+    event('chat:read',async p=>{
+      await pool.query(`UPDATE messages SET is_read=TRUE WHERE to_user_id=$1 AND from_user_id=$2 AND listing_id=$3`,[user.id,String(p?.partnerId),String(p?.listingId)]);
+      io.to(`user:${user.id}`).emit('chat:read',p);return {};
+    });
+  });
+  let busy=false;
+  const timer=setInterval(async()=>{if(busy)return;busy=true;try{await expire();await deliverNotifications(pool,env);}catch(e){console.error('Background job:',e.message);}finally{busy=false;}},15000);
+  timer.unref();
+  return {app,server,io,pool,expire,publicListings,close:async()=>{clearInterval(timer);await new Promise(r=>io.close(r));while(busy)await new Promise(r=>setTimeout(r,10));await pool.end();}};
 }
-start();
+if(require.main===module) createGame().then(game=>{
+  game.server.listen(Number(process.env.PORT||3000),'0.0.0.0',()=>console.log('AutoBazar 8.0 started'));
+  for(const sig of ['SIGINT','SIGTERM'])process.on(sig,()=>game.close().then(()=>process.exit(0)));
+}).catch(e=>{console.error('Startup:',e.message);process.exit(1);});
+module.exports={createGame};
