@@ -6,3 +6,32 @@
 
 /* Hide the title, area label, hint and joystick on every screen size. */
 .market-title, .map-info, .hint, .joystick { display: none !important; }
+
+/* Keep the daily reward between the profile and crystal balance. */
+header { display: grid; grid-template-columns: minmax(0,240px) auto auto; align-items: center; }
+header .daily { position: static; margin: 0; min-height: 44px; }
+header .profile { min-width: 0; }
+header .profile > span:last-child { min-width: 0; }
+header .profile b { max-width: 100%; }
+header .profile-track { max-width: 100%; }
+@media (max-width:700px) {
+  header { grid-template-columns: minmax(0,1fr) auto auto; gap: 5px; }
+  header .daily { padding: 6px; gap: 4px; }
+  header .daily > span:first-child { font-size: 20px; }
+  header .daily small { font-size: 8px; white-space: nowrap; }
+  header .daily b { font-size: 8px; padding: 5px 4px; white-space: nowrap; }
+  header .profile { padding: 6px; gap: 4px; }
+  header .profile .avatar { flex-shrink: 0; width: 29px; font-size: 24px; }
+  header .profile small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  header .balance { padding: 9px 7px; font-size: 16px; gap: 5px; }
+  header .settings { width: 36px; }
+}
+@media (max-width:360px) {
+  header .daily { padding: 5px; gap: 3px; }
+  header .daily > span:first-child { font-size: 16px; }
+  header .daily small, header .daily b { font-size: 7px; }
+  header .balance { padding: 9px 5px; font-size: 14px; gap: 4px; }
+  header .balance .plus { width: 16px; font-size: 16px; }
+  header .settings { width: 32px; }
+  header .top-actions { gap: 4px; }
+}
