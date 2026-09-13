@@ -19,10 +19,13 @@ export async function createMarket(onSelect,onOffice) {
   sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-50,right:50,top:65,bottom:-65,near:1,far:180});
   sun.shadow.bias=-.0003;sun.shadow.normalBias=.035;scene.add(sun);scene.add(sun.target);
   const loader=new GLTFLoader();
-  const [market,sedan,suv,hatchback,slots]=await Promise.all([
+  const [market,sedan,suv,hatchback,slots,names]=await Promise.all([
     loader.loadAsync('/assets/models/market.glb'),loader.loadAsync('/assets/models/sedan.glb'),
     loader.loadAsync('/assets/models/suv.glb'),loader.loadAsync('/assets/models/hatchback.glb'),
-    fetch('/assets/models/slots.json').then(r=>{if(!r.ok)throw Error('slots');return r.json();})]);
+    fetch('/assets/models/slots.json').then(r=>{if(!r.ok)throw Error('slots');return r.json();}),
+    loader.loadAsync('/assets/models/office-names.glb')]);
+  names.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  scene.add(names.scene);
   const noise=document.createElement('canvas');noise.width=noise.height=256;
   const ctx=noise.getContext('2d'),pixels=ctx.createImageData(256,256);let seed=41;
   for(let i=0;i<pixels.data.length;i+=4){seed=(seed*1664525+1013904223)>>>0;const v=110+(seed>>>24)%45;
