@@ -1,3 +1,7 @@
 node_modules/
 .env
-data/store.json
+data/*
+!data/.gitkeep
+*.blend1
+public/assets/models/blend/
+test-results/
