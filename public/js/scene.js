@@ -47,7 +47,7 @@ export async function createMarket(onSelect,onOffice) {
     const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),point=new THREE.Vector3();
     raycaster.ray.intersectPlane(plane,point);if(Math.abs(point.x)<7&&point.z>-20&&point.z<-8)onOffice();
   });
-  function reset(z=5) {camera.position.set(0,58,z+46);controls.target.set(0,0,z);camera.zoom=1;camera.updateProjectionMatrix();controls.update();}
+  function reset(z=5) {camera.position.set(0,54,z+56);controls.target.set(0,0,z);camera.zoom=1;camera.updateProjectionMatrix();controls.update();}
   function resize() {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
     const height=w<700?90:Math.max(57,73*h/w);const width=height*w/h;
