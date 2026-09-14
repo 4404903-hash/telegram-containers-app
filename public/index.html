@@ -11,16 +11,17 @@
   <header>
     <button class="profile glass" data-action="office"><span class="avatar">👨🏻</span><span><b id="playerName">Гравець</b><small id="playerRating">Ваш автомобіль. Ваша угода.</small><span class="profile-track"><i></i></span><small id="connection">Підключення…</small></span></button>
     <div class="market-title"><h1>Єдиний автобазар</h1><span>100 паркомісць</span><small id="occupancy">Завантажуємо площадку</small></div>
+    <button id="daily" class="daily glass"><span>🎁</span><span><small>Щоденний бонус</small><b id="dailyLabel">Отримати +5 💎</b></span></button>
     <div class="top-actions"><button class="glass balance" data-action="crystals">💎 <b id="balance">0</b><span class="plus">+</span></button><button class="glass settings" data-action="settings" aria-label="Налаштування">⚙</button></div>
   </header>
+  <form id="quickSearchForm" class="quick-search glass"><span>⌕</span><input id="quickSearch" placeholder="Марка або модель" aria-label="Пошук на автобазарі"><button id="openFilters" type="button" aria-label="Фільтри">☷</button></form>
   <nav class="side-nav" aria-label="Меню гри">
     <button class="glass" data-action="office"><span>▦</span><b>ОФІС</b></button>
     <button class="glass" data-action="garage"><span>🚘</span><b>МОЇ АВТО</b><i id="myCount">0</i></button>
-    <button class="glass" data-action="rating"><span>♛</span><b>РЕЙТИНГ</b></button>
-    <button class="glass" data-action="crystals"><span>💎</span><b>КРИСТАЛИ</b></button>
-    <button class="glass" data-action="developer"><span>➤</span><b>РОЗРОБНИК<small id="developerName">@s_5994</small></b></button>
+    <button class="glass" data-action="favorites"><span>♡</span><b>ОБРАНЕ</b></button>
+    
+    <button class="glass developer-button" data-action="developer"><span>➤</span><b>РОЗРОБНИК<small id="developerName">@s_5994</small></b></button>
   </nav>
-  <button id="daily" class="daily glass"><span>🎁</span><span><small>Щоденний бонус</small><b id="dailyLabel">Отримати +5 💎</b></span></button>
   <div id="demoBanner" class="demo-banner hidden">ДЕМО · тестові оголошення <button id="demoPopulate">Додати приклади</button></div>
   <div class="map-info glass"><span class="live-dot"></span><span id="mapArea">Центральна площадка · 1–30</span><button id="nextArea" title="Наступний сектор">→</button></div>
   <div id="hint" class="hint glass">Натисніть на авто, щоб переглянути деталі</div>

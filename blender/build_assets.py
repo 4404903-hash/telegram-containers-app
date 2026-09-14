@@ -91,7 +91,7 @@ curb=mat('Concrete',(.52,.53,.48),rough=.85)
 white=mat('Road paint',(.90,.90,.79),rough=.9)
 gold=mat('VIP gold',(.94,.66,.13),metal=.15)
 iron=mat('Fence graphite',(.052,.065,.064),metal=.7)
-glass=mat('Office glazing',(.20,.32,.35),metal=.15,rough=.18)
+glass=mat('Office glazing',(.14,.25,.28),metal=.65,rough=.14)
 sign=mat('Sign midnight',(.015,.035,.13),metal=.15)
 leaf=[mat('Foliage '+str(i),c,rough=1) for i,c in enumerate([(.14,.23,.04),(.23,.31,.07),(.11,.18,.03)])]
 bark=mat('Bark',(.17,.11,.06))
@@ -140,6 +140,12 @@ save_part('fence-and-gates',set(bpy.context.scene.objects)-fence_before)
 office_before=set(bpy.context.scene.objects)
 box('Office platform',(0,.16,-14),(14,.4,12),curb,.10)
 box('Office walls',(0,3.1,-14),(11,5.8,7),glass,.07)
+warm=mat('Warm office windows',(.62,.38,.13),metal=.35,rough=.23)
+for x in [-4.6,-2.8,.92,4.6]:
+    box('Warm reflected interior',(x,2.75,-10.43),(1.65,3.7,.04),warm)
+    box('Window desk silhouette',(x,1.6,-10.39),(1.35,.12,.04),iron)
+    box('Window chair silhouette',(x,1.4,-10.37),(.36,.65,.04),iron)
+
 for x in [-5.5,-3.7,-1.85,0,1.85,3.7,5.5]:box('Office mullion',(x,3.1,-10.45),(.10,5.8,.15),iron)
 for h in [.6,2.0,3.9,5.9]:box('Office crossbar',(0,h,-10.38),(11,.12,.15),iron)
 box('Office roof',(0,6.1,-14),(11.6,.28,7.6),iron,.09)
@@ -168,6 +174,18 @@ for z in range(-112,25,6):
 for x in range(-30,31,6):tree(x,-116,1.1)
 for x in [-25,-15,15,25]:tree(x,28,0.7)
 for x in [-25,-19,-13,13,19,25]:tree(x,-22,.8)
+# Flower beds and clipped shrubs sit outside parking bays and circulation lanes.
+flower=mat('Flowers coral',(.7,.07,.12),rough=.75)
+for x in [-18,18]:
+    box('Entrance garden curb',(x,.2,22.5),(20,.4,1.7),curb,.12)
+    box('Entrance garden soil',(x,.43,22.5),(19.6,.08,1.3),bark)
+    for n in range(16):
+        xx=x-9+n*1.2
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=.48,location=coord(xx,.65,22.5))
+        bpy.context.object.name='Clipped entrance shrub';bpy.context.object.data.materials.append(leaf[n%3])
+        for offset in [-.15,.15]:
+            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.12,location=coord(xx+offset,1.08,22.5))
+            bpy.context.object.data.materials.append(flower)
 save_part('trees',set(bpy.context.scene.objects)-trees_before)
 lights_before=set(bpy.context.scene.objects)
 for z in [-20,-44,-68,-92,23]:
@@ -192,8 +210,23 @@ def car(kind,color):
     length=4.55 if kind=='sedan' else 4.7 if kind=='suv' else 3.95
     width=1.92 if kind=='suv' else 1.82
     lift=.16 if kind=='suv' else 0
-    box('Sill',(0,.43+lift,0),(width,.34,length-.2),paint,.16)
-    box('Sculpted body',(0,.72+lift,0),(width,.55,length),paint,.24)
+    # A continuous curved shell with 12-point cross sections replaces stacked boxes.
+    rings=[(-.50,.77,.72),(-.46,.96,.86),(-.30,1,.99),(-.12,1,1.0),(.18,1,.99),(.35,.98,.91),(.46,.89,.77),(.50,.70,.65)]
+    verts=[]
+    for zz,ww,hh in rings:
+        for xx,yy in [(-.68,.34),(-.94,.40),(-1,.60),(-.99,.77),(-.85,.93),(-.5,1),( .5,1),(.85,.93),(.99,.77),(1,.60),(.94,.40),(.68,.34)]:
+            verts.append(coord(xx*width*.5*ww,yy*hh+lift,zz*length))
+    faces=[tuple(range(11,-1,-1))]
+    for j in range(len(rings)-1):
+        for k in range(12):faces.append((j*12+k,j*12+(k+1)%12,(j+1)*12+(k+1)%12,(j+1)*12+k))
+    faces.append(tuple(range((len(rings)-1)*12,len(rings)*12)))
+    mesh=bpy.data.meshes.new('Sculpted vehicle shell');mesh.from_pydata(verts,[],faces);mesh.update()
+    shell=bpy.data.objects.new('Sculpted body',mesh);bpy.context.collection.objects.link(shell);mesh.materials.append(paint)
+    for face in mesh.polygons:face.use_smooth=True
+    bevel=shell.modifiers.new('Rounded body seams','BEVEL');bevel.width=.055;bevel.segments=3
+    bpy.context.view_layer.objects.active=shell;bpy.ops.object.modifier_apply(modifier=bevel.name)
+    box('Lower sport sill',(0,.36+lift,0),(width*.93,.16,length*.83),dark,.06)
+
     # Cabin is a tapered mesh, wide at beltline and narrower at roof.
     def cabin(name,bottom,top,z0,z1,roof0,roof1,wide,narrow,material):
         verts=[coord(-wide,bottom,z0),coord(wide,bottom,z0),coord(wide,bottom,z1),coord(-wide,bottom,z1),
@@ -211,13 +244,13 @@ def car(kind,color):
         box('Mirror',(x*1.12,1.04+lift,.73),(.22,.13,.24),paint,.05)
         for z in [-.70,.42]:box('Door handle',(x*1.025,.88+lift,z),(.035,.05,.23),chrome,.02)
         box('Door seam',(x*1.011,.66+lift,-.13),(.02,.32,.018),dark)
-    for x in [-width*.36,width*.36]:
-        box('Headlight',(x,.76+lift,length/2-.02),(.43,.16,.07),lamp,.045)
-        box('Rear light',(x,.8+lift,-length/2+.02),(.43,.16,.07),tail,.03)
+    for x in [-width*.28,width*.28]:
+        box('Headlight',(x,.60+lift,length*.484),(.35,.12,.07),lamp,.035)
+        box('Rear light',(x,.69+lift,-length*.47),(.35,.12,.07),tail,.03)
     for z in [-length/2-.005,length/2+.005]:
         box('Bumper',(0,.45+lift,z),(width*.90,.16,.09),dark,.03)
         box('Number plate',(0,.65+lift,z*1.01),(.48,.13,.025),white,.01)
-    box('Grille',(0,.83+lift,length/2+.01),(.65,.19,.045),dark,.025)
+    box('Grille',(0,.55+lift,length/2+.01),(.65,.12,.045),dark,.025)
     for x in [-width/2,width/2]:
         for z in [-length*.30,length*.30]:
             bpy.ops.mesh.primitive_cylinder_add(vertices=24,radius=.36+lift*.4,depth=.22,location=coord(x,.37+lift*.4,z),rotation=(0,math.pi/2,0))
@@ -256,5 +289,6 @@ bpy.ops.wm.save_as_mainfile(filepath=os.path.join(SRC,'car-colors.blend'))
 for name in ['office','fence-and-gates','trees','street-lamps']:
     filename=os.path.join(SRC,name+'.blend')
     bpy.ops.wm.open_mainfile(filepath=filename)
+    bpy.context.window.scene=max(bpy.data.scenes,key=lambda scene:len(scene.objects))
     bpy.ops.wm.save_as_mainfile(filepath=filename)
 print('AUTObazar assets built:',ROOT)

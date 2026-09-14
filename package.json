@@ -1,6 +1,6 @@
 {
   "name": "telegram-auto-bazar-game",
-  "version": "8.0.0",
+  "version": "9.0.0",
   "private": true,
   "main": "server.js",
   "scripts": {
@@ -17,6 +17,7 @@
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "pg": "^8.16.3",
+    "sharp": "^0.35.4",
     "socket.io": "^4.8.1",
     "three": "0.180.0"
   },
