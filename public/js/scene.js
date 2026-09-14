@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export async function createMarket(onSelect,onOffice) {
@@ -8,14 +9,16 @@ export async function createMarket(onSelect,onOffice) {
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=1.15;host.append(renderer.domElement);
-  const scene=new THREE.Scene();scene.background=new THREE.Color('#6a7953');
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#74815f');
+  const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
+  scene.environment=pmrem.fromScene(room,.04).texture;room.dispose();pmrem.dispose();scene.environmentIntensity=.55;
   const camera=new THREE.OrthographicCamera(-34,34,27,-27,.1,400);
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
   controls.minZoom=.45;controls.maxZoom=3;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
   controls.touches.ONE=THREE.TOUCH.PAN;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
-  scene.add(new THREE.HemisphereLight(0xe9f3ff,0x454829,2.0));
-  const sun=new THREE.DirectionalLight(0xffedcc,3.0);sun.position.set(-28,48,24);sun.castShadow=true;
+  scene.add(new THREE.HemisphereLight(0xe9f3ff,0x454829,1.4));
+  const sun=new THREE.DirectionalLight(0xffedcc,2.3);sun.position.set(-28,48,24);sun.castShadow=true;
   sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-50,right:50,top:65,bottom:-65,near:1,far:180});
   sun.shadow.bias=-.0003;sun.shadow.normalBias=.035;scene.add(sun);scene.add(sun.target);
   const loader=new GLTFLoader();
@@ -33,11 +36,21 @@ export async function createMarket(onSelect,onOffice) {
   ctx.putImageData(pixels,0,0);const asphaltTexture=new THREE.CanvasTexture(noise);
   asphaltTexture.wrapS=asphaltTexture.wrapT=THREE.RepeatWrapping;asphaltTexture.repeat.set(20,40);
   market.scene.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=true;
-    if(o.material.name==='Asphalt'){o.material.color.set('#85847b');o.material.map=asphaltTexture;o.material.roughness=1;}
+    if(o.material.name==='Asphalt'){o.material.color.set('#626960');o.material.map=asphaltTexture;o.material.roughness=1;}
     if(o.material.name==='Grass')o.material.color.set('#526430');
   }});scene.add(market.scene);
   const templates={sedan:sedan.scene,suv:suv.scene,hatchback:hatchback.scene};
   const colors={black:'#141b20',white:'#edf0e9',silver:'#a5afb1',red:'#a81721',blue:'#175bc0',green:'#23734b',yellow:'#ffc229',purple:'#713bae'};
+  let selected=null;const metadata=new Map();
+  const marker=document.createElement('button');marker.className='price-marker';marker.hidden=true;host.append(marker);
+  marker.onclick=()=>{if(selected)onSelect(selected);};
+  const outline=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(-1.7,.09,-3.15),new THREE.Vector3(1.7,.09,-3.15),new THREE.Vector3(1.7,.09,3.15),new THREE.Vector3(-1.7,.09,3.15)
+  ]),new THREE.LineBasicMaterial({color:0x67ffac}));outline.visible=false;scene.add(outline);
+  const selectedFloor=new THREE.Mesh(new THREE.PlaneGeometry(3.4,6.3),new THREE.MeshBasicMaterial({color:0x36ef96,transparent:true,opacity:.22,depthWrite:false}));
+  selectedFloor.rotation.x=-Math.PI/2;outline.add(selectedFloor);selectedFloor.position.y=.08;
+  function select(id){selected=id;const o=models.get(id),l=metadata.get(id);outline.visible=!!o;marker.hidden=!o;
+    if(o&&l){outline.position.copy(o.position);marker.textContent='$ '+Number(l.price).toLocaleString('uk-UA')+' · Деталі';}}
   const models=new Map();const carLayer=new THREE.Group();scene.add(carLayer);
   const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
   renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,time:Date.now()};});
@@ -46,14 +59,14 @@ export async function createMarket(onSelect,onOffice) {
     const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
     raycaster.setFromCamera(pointer,camera);
     const hits=raycaster.intersectObjects(carLayer.children,true);
-    if(hits.length){let o=hits[0].object;while(o&&!o.userData.listingId)o=o.parent;if(o)onSelect(o.userData.listingId);return;}
+    if(hits.length){let o=hits[0].object;while(o&&!o.userData.listingId)o=o.parent;if(o){select(o.userData.listingId);onSelect(o.userData.listingId);}return;}
     const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),point=new THREE.Vector3();
     raycaster.ray.intersectPlane(plane,point);if(Math.abs(point.x)<7&&point.z>-20&&point.z<-8)onOffice();
   });
-  function reset(z=5) {camera.position.set(0,54,z+56);controls.target.set(0,0,z);camera.zoom=1;camera.updateProjectionMatrix();controls.update();}
+  function reset(z=-8) {camera.position.set(0,54,z+56);controls.target.set(0,0,z);camera.zoom=1;camera.updateProjectionMatrix();controls.update();}
   function resize() {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
-    const height=w<700?90:Math.max(57,73*h/w);const width=height*w/h;
+    const height=w<700?105:Math.max(57,73*h/w);const width=height*w/h;
     camera.left=-width/2;camera.right=width/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
   }
   reset();resize();window.addEventListener('resize',resize);
@@ -80,12 +93,19 @@ export async function createMarket(onSelect,onOffice) {
     camera.position.add(controls.target.clone().sub(target));
     sun.target.position.copy(controls.target);sun.position.copy(controls.target).add(new THREE.Vector3(-28,48,24));
     document.querySelector('#mapArea').textContent=controls.target.z>-21?'Центральна площадка · 1–30':controls.target.z>-51?'Північна площадка · 31–50':controls.target.z>-81?'Північна площадка · 51–80':'Північна площадка · 81–100';
+    if(selected&&models.has(selected)){
+      const p=models.get(selected).position.clone().add(new THREE.Vector3(0,3.5,0)).project(camera);
+      marker.hidden=Math.abs(p.x)>.94||Math.abs(p.y)>.9||!!document.querySelector('dialog[open]');
+      marker.style.left=((p.x+1)*host.clientWidth/2)+'px';marker.style.top=((-p.y+1)*host.clientHeight/2)+'px';
+    }
     renderer.render(scene,camera);
   });
   return {
+    select,
     update(listings){
+      metadata.clear();listings.forEach(l=>metadata.set(l.id,l));
       const ids=new Set(listings.map(l=>l.id));
-      for(const [id,o] of models)if(!ids.has(id)){carLayer.remove(o);o.traverse(m=>{if(m.userData.ownMaterial)m.material.dispose();});models.delete(id);}
+      for(const [id,o] of models)if(!ids.has(id)){carLayer.remove(o);o.traverse(m=>{if(m.userData.ownMaterial)m.material.dispose();});models.delete(id);if(selected===id)select(null);}
       for(const l of listings){
         if(models.has(l.id))continue;const slot=slots.find(s=>s.id===l.slotId);if(!slot)continue;
         const model=(templates[l.bodyType]||templates.sedan).clone(true);model.userData.listingId=l.id;
@@ -94,7 +114,7 @@ export async function createMarket(onSelect,onOffice) {
           if(m.material.name.startsWith('BodyPaint')){m.material=m.material.clone();m.material.color.set(colors[l.color]||colors.black);m.userData.ownMaterial=true;}}});
         models.set(l.id,model);carLayer.add(model);
       }
-    }, focus(id){const o=models.get(id);if(o){reset(o.position.z);pan(o.position.x,0);camera.zoom=1.8;camera.updateProjectionMatrix();}},
+    }, focus(id){select(id);const o=models.get(id);if(o){reset(o.position.z);pan(o.position.x,0);camera.zoom=1.45;camera.updateProjectionMatrix();}},
     setQuality(high){renderer.shadowMap.enabled=high;renderer.setPixelRatio(high?Math.min(devicePixelRatio,1.5):1);resize();},
     reset
   };

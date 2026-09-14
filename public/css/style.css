@@ -35,3 +35,10 @@ header .profile-track { max-width: 100%; }
   header .settings { width: 32px; }
   header .top-actions { gap: 4px; }
 }
+
+/* v9: compact marketplace controls and real listing photos. */
+.quick-search{position:absolute;top:116px;left:50%;transform:translateX(-50%);width:min(460px,calc(100% - 28px));display:flex;align-items:center;padding:5px 12px;gap:8px;border-radius:16px;z-index:3}
+.quick-search input{background:transparent;border:0;margin:0;padding:8px 0;min-width:0;flex:1;color:#fff}.quick-search button{background:none;border:0;color:#c4ddd4;font-size:28px;padding:0 8px}.quick-search>span{font-size:28px;color:#a6c5b9}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.filter-grid label:last-child{grid-column:1/-1}.photo-gallery{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;border-radius:16px;background:#101b20}.photo-gallery img{width:100%;height:230px;object-fit:contain;flex:0 0 100%;scroll-snap-align:center}.listing-card img{object-fit:cover;border-radius:10px}.text-button{border:0;background:none;color:#b3c7be;padding:12px}.photo-preview{font-size:12px;color:#b2c7bf;overflow-wrap:anywhere}.report-card{border-bottom:1px solid #38534a;padding:16px 0}.price-marker{position:absolute;z-index:2;pointer-events:auto;background:#10382d;color:#fff;border:1px solid #8df1bd;border-radius:12px;padding:7px 13px;box-shadow:0 4px 18px #0007;font-weight:700;white-space:nowrap;transform:translate(-50%,-100%)}.side-nav .developer-button{display:none}
+@media(max-width:700px){.quick-search{top:100px}.side-nav{top:164px;gap:8px}.side-nav button{width:48px;height:50px;min-height:50px;border-radius:14px}.side-nav button span{font-size:25px}.zoom-controls button{width:44px;height:44px;font-size:29px}.photo-gallery img{height:210px}.demo-banner{top:auto;bottom:100px;max-width:200px;font-size:9px;left:12px}.demo-banner button{font-size:10px}}
+.demo-banner{transform:none;left:12px;max-width:230px}.quick-search{top:100px}@media(max-width:700px){.quick-search{top:78px}.side-nav{top:140px}}
