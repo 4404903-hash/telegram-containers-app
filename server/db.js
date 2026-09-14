@@ -42,8 +42,8 @@ async function migrate(pool) {
     for (const column of ['color TEXT NOT NULL DEFAULT \'black\'', 'slot_id INTEGER',
       'zone INTEGER NOT NULL DEFAULT 1', 'spot INTEGER', 'expires_at TIMESTAMPTZ',
       "body_type TEXT NOT NULL DEFAULT 'sedan'"]) await c.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS ${column}`);
-    await c.query(`UPDATE listings SET expires_at=created_at + INTERVAL '24 hours' WHERE expires_at IS NULL`);
-    await c.query(`ALTER TABLE listings ALTER COLUMN expires_at SET DEFAULT (NOW() + INTERVAL '24 hours')`);
+    await c.query(`UPDATE listings SET expires_at=created_at + INTERVAL '168 hours' WHERE expires_at IS NULL`);
+    await c.query(`ALTER TABLE listings ALTER COLUMN expires_at SET DEFAULT (NOW() + INTERVAL '168 hours')`);
     await c.query('ALTER TABLE listings ALTER COLUMN expires_at SET NOT NULL');
     await c.query(`UPDATE listings SET slot_id=COALESCE(slot_id, spot), spot=COALESCE(spot, slot_id)`);
     await c.query(`UPDATE listings SET status='expired' WHERE status='active' AND expires_at<=NOW()`);
