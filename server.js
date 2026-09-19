@@ -198,4 +198,3 @@ if(require.main===module) createGame().then(game=>{
   for(const sig of ['SIGINT','SIGTERM'])process.on(sig,()=>game.close().then(()=>process.exit(0)));
 }).catch(e=>{console.error('Startup:',e.message);process.exit(1);});
 module.exports={createGame};
-data.vip = Boolean(e.target.elements.vip?.checked);
