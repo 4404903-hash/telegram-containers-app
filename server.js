@@ -108,7 +108,7 @@ async function createGame(env=process.env, suppliedPool) {
         !Number.isInteger(year)||year<1950||year>new Date().getFullYear()+1||!Number.isFinite(price)||price<1||price>100000000||
         !COLORS.includes(color)||!['sedan','suv','hatchback'].includes(body)) fail('Перевірте марку, модель, рік, ціну, колір та опис');
       const details=await prepareDetails(p);
-      const vip=p.vip===true||p.vip==='on';
+      const vip=p.vip===true||p.vip==='true';
       const c=await pool.connect();let value;
       try {
         await c.query('BEGIN');
