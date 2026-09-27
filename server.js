@@ -21,9 +21,9 @@ const message = r => ({id:r.id,listingId:r.listing_id,listingTitle:r.listing_tit
 async function createGame(env=process.env, suppliedPool) {
   const demo = env.DEMO_MODE === 'true';
   const configuredDurationHours = Number(env.LISTING_DURATION_HOURS);
-const durationHours = Number.isInteger(configuredDurationHours) && configuredDurationHours > 0
-  ? configuredDurationHours
-  : 168;
+  const durationHours = Number.isInteger(configuredDurationHours) && configuredDurationHours > 0
+    ? configuredDurationHours
+    : 168;
   if (!demo && !env.BOT_TOKEN) throw Error('BOT_TOKEN is required');
   if (!demo && !/^https:\/\//.test(env.APP_URL||'')) throw Error('HTTPS APP_URL is required');
   if (demo && env.NODE_ENV === 'production') throw Error('DEMO_MODE must be false in production');
