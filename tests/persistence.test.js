@@ -16,7 +16,7 @@ test('Old schema migrates and data survives disk reopen',async()=>{
       brand TEXT NOT NULL,model TEXT NOT NULL,year INT NOT NULL,price NUMERIC NOT NULL,description TEXT DEFAULT '',
       status TEXT DEFAULT 'active',created_at TIMESTAMPTZ DEFAULT NOW(),spot INT)`);
     await db.query(`INSERT INTO listings(id,seller_id,seller_name,brand,model,year,price,spot,created_at)
-      VALUES('old','old-user','Existing seller','BMW','320',2020,15000,11,NOW()-INTERVAL '25 hours'),
+      VALUES('old','old-user','Existing seller','BMW','320',2020,15000,11,NOW()-INTERVAL '169 hours'),
       ('new','old-user','Existing seller','Audi','A4',2021,17000,12,NOW()-INTERVAL '2 hours')`);
     await migrate(db);await migrate(db);
     const rows=(await db.query('SELECT id,status,slot_id FROM listings ORDER BY id')).rows;
