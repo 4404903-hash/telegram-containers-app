@@ -4,12 +4,12 @@ const http = require('node:http');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { Server } = require('socket.io');
-const { database, migrate } = require('./server/db');
+const { database, migrate, relocateListings } = require('./server/db');
 const { validateTelegram } = require('./server/auth');
 const { deliverNotifications } = require('./server/notifications');
 const {prepareDetails,migrateExtras,extras}=require('./server/extras');
 const COLORS = ['black','white','silver','red','blue','green','yellow','purple'];
-const TOTAL_SLOTS = 100;
+const TOTAL_SLOTS = 30;
 const fail = text => { throw new Error(text); };
 const listing = r => ({id:r.id,sellerId:r.seller_id,sellerName:r.seller_name,brand:r.brand,model:r.model,
   year:Number(r.year),price:Number(r.price),description:r.description,color:r.color,bodyType:r.body_type,
@@ -34,7 +34,7 @@ async function createGame(env=process.env, suppliedPool) {
   app.use((_q,r,next)=>{r.setHeader('X-Content-Type-Options','nosniff');r.setHeader('Referrer-Policy','same-origin');next();});
   app.get('/api/config',(_q,r)=>r.json({demo,totalSlots:TOTAL_SLOTS,vipPrice:10,durationHours,
   developer:env.DEVELOPER_USERNAME||'s_5994',notifications:!!env.BOT_TOKEN}));
-  app.get('/version',(_q,r)=>r.json({version:'9.0.0',build:'blender-market-100'}));
+  app.get('/version',(_q,r)=>r.json({version:'9.0.0',build:'blender-market-30'}));
   app.get('/health',async(_q,r)=>{try {await pool.query('SELECT 1');r.json({ok:true,slots:TOTAL_SLOTS});}catch{r.status(503).json({ok:false});}});
   app.use('/vendor/three',express.static(path.join(__dirname,'node_modules/three')));
   app.use(express.static(path.join(__dirname,'public'),{maxAge:0}));
@@ -63,7 +63,8 @@ async function createGame(env=process.env, suppliedPool) {
   });
   async function expire() {
     const r=await pool.query(`UPDATE listings SET status='expired' WHERE status='active' AND expires_at<=NOW() RETURNING id`);
-    if(r.rowCount) await broadcast();
+    const moved=await relocateListings(pool);
+    if(r.rowCount || moved) await broadcast();
   }
   io.on('connection',socket=>{
     let user=null,authenticating=false;
@@ -117,8 +118,9 @@ async function createGame(env=process.env, suppliedPool) {
         await c.query('BEGIN');
         await c.query('LOCK TABLE listings IN SHARE ROW EXCLUSIVE MODE');
         await c.query(`UPDATE listings SET status='expired' WHERE status='active' AND expires_at<=NOW()`);
+        await relocateListings(c,true);
         const free=await c.query(`SELECT s FROM generate_series($1::int,$2::int) s WHERE NOT EXISTS
-          (SELECT 1 FROM listings WHERE status='active' AND slot_id=s) ORDER BY s LIMIT 1`,[vip?1:11,vip?10:100]);
+          (SELECT 1 FROM listings WHERE status='active' AND slot_id=s) ORDER BY s LIMIT 1`,[vip?1:11,vip?10:TOTAL_SLOTS]);
         if(!free.rows.length) fail(vip?'Усі VIP-місця зайняті':'Усі звичайні місця зайняті');
         if(vip) {
           const balance=await c.query(`UPDATE users SET crystals=crystals-10 WHERE id=$1 AND crystals>=10 RETURNING crystals`,[user.id]);

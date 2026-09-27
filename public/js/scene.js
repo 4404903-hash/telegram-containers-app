@@ -14,7 +14,7 @@ export async function createMarket(onSelect,onOffice) {
   scene.environment=pmrem.fromScene(room,.04).texture;room.dispose();pmrem.dispose();scene.environmentIntensity=.55;
   const camera=new THREE.OrthographicCamera(-30,30,30,-30,.1,400);
   const cameraOffset=new THREE.Vector3(0,50,68);
-  const homeTarget=new THREE.Vector3(0,0,5);
+  const homeTarget=new THREE.Vector3(0,0,2);
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
   controls.dampingFactor=.1;controls.minZoom=.55;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
@@ -76,7 +76,7 @@ export async function createMarket(onSelect,onOffice) {
   function resize() {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
     const aspect=w/Math.max(h,1);
-    const viewWidth=aspect<.8?56:aspect<1.25?64:aspect<1.7?72:78;
+    const viewWidth=Math.max(74,54*aspect);
     const height=viewWidth/aspect;
     camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
   }
@@ -94,7 +94,7 @@ export async function createMarket(onSelect,onOffice) {
   function zoom(v){cameraMove=null;camera.zoom=THREE.MathUtils.clamp(camera.zoom*v,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();}
   document.querySelector('#zoomIn').onclick=()=>zoom(1.2);document.querySelector('#zoomOut').onclick=()=>zoom(1/1.2);
   document.querySelector('#resetCamera').onclick=()=>{area=0;select(null);reset();};let area=0;
-  document.querySelector('#nextArea').onclick=()=>{area=(area+1)%4;reset([5,-36,-66,-96][area]);};
+  document.querySelector('#nextArea').onclick=()=>{reset();};
   let last=performance.now();
   renderer.setAnimationLoop(now=>{
     const dt=Math.min((now-last)/1000,.05);last=now;
@@ -107,10 +107,10 @@ export async function createMarket(onSelect,onOffice) {
     }
     if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20/camera.zoom,movement[1]*dt*20/camera.zoom);
     controls.update();
-    const target=controls.target.clone();controls.target.x=THREE.MathUtils.clamp(target.x,-26,26);controls.target.z=THREE.MathUtils.clamp(target.z,-104,18);
+    const target=controls.target.clone();controls.target.x=THREE.MathUtils.clamp(target.x,-32,32);controls.target.z=THREE.MathUtils.clamp(target.z,-20,25);
     camera.position.add(controls.target.clone().sub(target));
     sun.target.position.copy(controls.target);sun.position.copy(controls.target).add(new THREE.Vector3(-28,48,24));
-    document.querySelector('#mapArea').textContent=controls.target.z>-21?'Центральна площадка · 1–30':controls.target.z>-51?'Північна площадка · 31–50':controls.target.z>-81?'Північна площадка · 51–80':'Північна площадка · 81–100';
+    document.querySelector('#mapArea').textContent='Центральна площадка · 1–30';
     if(selected&&models.has(selected)){
       const p=models.get(selected).position.clone().add(new THREE.Vector3(0,3.5,0)).project(camera);
       marker.hidden=Math.abs(p.x)>.94||Math.abs(p.y)>.9||!!document.querySelector('dialog[open]');
@@ -125,7 +125,8 @@ export async function createMarket(onSelect,onOffice) {
       const ids=new Set(listings.map(l=>l.id));
       for(const [id,o] of models)if(!ids.has(id)){carLayer.remove(o);o.traverse(m=>{if(m.userData.ownMaterial)m.material.dispose();});models.delete(id);if(selected===id)select(null);}
       for(const l of listings){
-        if(models.has(l.id))continue;const slot=slots.find(s=>s.id===l.slotId);if(!slot)continue;
+        const slot=slots.find(s=>s.id===l.slotId);if(!slot)continue;
+        if(models.has(l.id)){models.get(l.id).position.set(slot.x,.05,slot.z);continue;}
         const model=(templates[l.bodyType]||templates.sedan).clone(true);model.userData.listingId=l.id;
         model.position.set(slot.x,.05,slot.z);model.scale.setScalar(1.25);
         model.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;

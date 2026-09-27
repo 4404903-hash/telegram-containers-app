@@ -68,7 +68,28 @@ async function migrate(pool) {
       id TEXT PRIMARY KEY, recipient TEXT NOT NULL, text TEXT NOT NULL,
       attempts INTEGER NOT NULL DEFAULT 0, next_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       status TEXT NOT NULL DEFAULT 'pending', last_error TEXT)`);
+    await relocateListings(c,true);
     await c.query('COMMIT');
   } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
 }
-module.exports = { database, migrate };
+// Keep overflow listings visible in the catalogue until an ordinary bay is free.
+async function relocateListings(pool,inTransaction=false) {
+  const ownConnection=!inTransaction;
+  const c=ownConnection?await pool.connect():pool;
+  try {
+    if(ownConnection) await c.query('BEGIN');
+    await c.query('LOCK TABLE listings IN SHARE ROW EXCLUSIVE MODE');
+    const result=await c.query(`WITH waiting AS (
+      SELECT id,ROW_NUMBER() OVER (ORDER BY created_at,id) n FROM listings
+      WHERE status='active' AND expires_at>NOW() AND slot_id>30
+    ), free AS (
+      SELECT s,ROW_NUMBER() OVER (ORDER BY s) n FROM generate_series(11,30) s
+      WHERE NOT EXISTS(SELECT 1 FROM listings WHERE status='active' AND slot_id=s)
+    ) UPDATE listings l SET slot_id=f.s,spot=f.s FROM waiting w JOIN free f ON f.n=w.n
+      WHERE l.id=w.id RETURNING l.id`);
+    if(ownConnection) await c.query('COMMIT');
+    return result.rowCount;
+  } catch(e) {if(ownConnection)await c.query('ROLLBACK');throw e;}
+  finally {if(ownConnection)c.release();}
+}
+module.exports = { database, migrate, relocateListings };

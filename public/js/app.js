@@ -27,13 +27,13 @@ $('#modal').addEventListener('click',e=>{if(e.target===$('#modal')){const r=$('#
 function mergeMessages(arr){const map=new Map(messages.map(m=>[m.id,m]));arr.forEach(m=>map.set(m.id,m));messages=[...map.values()];}
 function updateHUD(){
   $('#balance').textContent=balance;$('#myCount').textContent=listings.filter(l=>l.sellerId===user?.id).length;
-  $('#occupancy').textContent=`${listings.length} авто на продажу · ${100-listings.length} вільних місць`;
+  $('#occupancy').textContent=`${listings.length} авто на продажу · ${Math.max(0,(config?.totalSlots||30)-listings.filter(l=>l.slotId<=30).length)} вільних місць`;
   $('#dailyLabel').textContent=bonus?'Отримати +5 💎':'До завтра ✓';
   const unread=messages.filter(m=>m.toUserId===user?.id&&!m.read).length;$('#unread').textContent=unread;$('#unread').classList.toggle('hidden',!unread);
   const mine=listings.find(l=>l.sellerId===user?.id);$('#playerRating').textContent=mine?.ratingCount?`Рейтинг: ★ ${mine.sellerRating.toFixed(1)}`:'Рейтинг: новий продавець';
 }
 const photo=(l,i=0)=>l.photoCount?`/api/photos/${encodeURIComponent(l.id)}/${i}`:`/assets/cars/${colors[l.color]?l.color:'black'}.png`;
-function card(l){return `<button class="listing-card" data-id="${esc(l.id)}"><img src="${photo(l)}" alt="${esc(colors[l.color]?.[0]||'Автомобіль')}"><span><b>${esc(l.brand)} ${esc(l.model)}</b><small>${l.year} · ${esc(l.city||'Місто не вказано')} · ${l.mileage==null?'Пробіг не вказано':Number(l.mileage).toLocaleString('uk-UA')+' км'}<br><span data-expires="${esc(l.expiresAt)}">${timeLeft(l)}</span> · ${favorites.includes(l.id)?'♥':'№'+l.slotId}</small><em>${money(l.price)}</em></span></button>`;}
+function card(l){return `<button class="listing-card" data-id="${esc(l.id)}"><img src="${photo(l)}" alt="${esc(colors[l.color]?.[0]||'Автомобіль')}"><span><b>${esc(l.brand)} ${esc(l.model)}</b><small>${l.year} · ${esc(l.city||'Місто не вказано')} · ${l.mileage==null?'Пробіг не вказано':Number(l.mileage).toLocaleString('uk-UA')+' км'}<br><span data-expires="${esc(l.expiresAt)}">${timeLeft(l)}</span> · ${favorites.includes(l.id)?'♥':(l.slotId>30?'Очікує місця':'№'+l.slotId)}</small><em>${money(l.price)}</em></span></button>`;}
 function bindCards(){document.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>openCar(b.dataset.id));}
 function catalog(own=false,saved=false,query=''){
   modal(own?'Мої авто':saved?'Обрані авто':'Авто на площадці',`<input id="searchCars" class="catalog-search" value="${esc(query)}" placeholder="Марка або модель" aria-label="Пошук авто"><div class="filter-grid"><label>Рік від<input id="filterYear" type="number" min="1950" max="2100" placeholder="Будь-який"></label><label>Ціна до, $<input id="filterPrice" type="number" min="1" placeholder="Без обмежень"></label><label>Сортування<select id="filterSort"><option value="new">Нові спочатку</option><option value="cheap">Дешевші спочатку</option><option value="year">Новіший рік</option></select></label></div><p id="filterCount" class="muted"></p><div id="carList" class="cards"></div>${own?'<button class="primary full" data-action="sell">＋ Виставити авто</button>':''}`,own?'garage':saved?'favorites':'catalog');
@@ -51,11 +51,11 @@ function openCar(id){
     <div class="specs"><div><small>МІСТО</small>${esc(l.city||'Не вказано')}</div><div><small>ПРОБІГ</small>${l.mileage==null?'Не вказано':Number(l.mileage).toLocaleString('uk-UA')+' км'}</div><div><small>РІК ВИПУСКУ</small>${l.year}</div><div><small>КОЛІР</small>${colors[l.color]?.[0]||esc(l.color)}</div><div><small>ПРОДАВЕЦЬ</small>${esc(l.sellerName)}</div><div><small>ЗАЛИШИЛОСЯ</small><span id="expiresLabel">${timeLeft(l)}</span></div></div>
     <div class="actions"><button id="saveCar" class="secondary">${favorites.includes(id)?'♥ В обраному':'♡ До обраного'}</button>${mine?'':'<button id="reportCar" class="text-button">Поскаржитися</button>'}</div><p class="description">${esc(l.description)}</p><p class="muted">${l.ratingCount?`★ ${l.sellerRating.toFixed(1)} · ${l.ratingCount} оцінок`:'Новий продавець'}</p>
     ${mine?'':`<div class="stars" aria-label="Оцінити продавця">${[1,2,3,4,5].map(n=>`<button data-rate="${n}" title="${n} з 5">★</button>`).join('')}</div>`}
-    <div class="actions"><button id="carPrimary" class="${mine?'danger':'primary'}">${mine?'Зняти з продажу':'Купити · відкрити чат'}</button><button id="locateCar" class="secondary">На карті</button></div><p class="muted">Кнопка «Купити» відкриває діалог із продавцем. Гра не списує гроші за автомобіль.</p>`, 'car',`${l.slotId<=10?'VIP · ':''}МІСЦЕ №${l.slotId}`);
+    <div class="actions"><button id="carPrimary" class="${mine?'danger':'primary'}">${mine?'Зняти з продажу':'Купити · відкрити чат'}</button><button id="locateCar" class="secondary">На карті</button></div><p class="muted">Кнопка «Купити» відкриває діалог із продавцем. Гра не списує гроші за автомобіль.</p>`, 'car',`${l.slotId<=10?'VIP · ':''}${l.slotId>30?'ОЧІКУЄ МІСЦЯ':'МІСЦЕ №'+l.slotId}`);
   $('#saveCar').onclick=safe(async()=>{favorites=await request('favorite:set',{id,saved:!favorites.includes(id)});$('#saveCar').textContent=favorites.includes(id)?'♥ В обраному':'♡ До обраного';});
   if($('#reportCar'))$('#reportCar').onclick=()=>reportCar(id);
   $('#carPrimary').onclick=safe(async()=>{if(mine){await request('listing:remove',id);close();toast('Авто знято з продажу');}else await openChat({listingId:l.id,partnerId:l.sellerId,partnerName:l.sellerName,listingTitle:`${l.brand} ${l.model}`});});
-  $('#locateCar').onclick=()=>{market?.focus(id);close();};
+  $('#locateCar').disabled=l.slotId>30;$('#locateCar').onclick=()=>{market?.focus(id);close();};
   document.querySelectorAll('[data-rate]').forEach(b=>b.onclick=safe(async()=>{await request('seller:rate',{sellerId:l.sellerId,rating:Number(b.dataset.rate)});toast('Оцінку збережено');}));
 }
 function sell(){

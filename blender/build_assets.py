@@ -98,28 +98,26 @@ bark=mat('Bark',(.17,.11,.06))
 
 # Coordinates also shipped as JSON: the renderer and Blender share slot positions.
 slots=[]
-for x in [-25,-21,-17,-13,-9,9,13,17,21,25]:slots.append(dict(id=len(slots)+1,x=x,z=-8))
-for z in [4,17]:
-    for i in range(10):slots.append(dict(id=len(slots)+1,x=-22.5+i*5,z=z))
-for z in [-30,-42,-54,-66,-78,-90,-102]:
-    for i in range(10):slots.append(dict(id=len(slots)+1,x=-22.5+i*5,z=z))
+for x in [-30,-25,-20,-15,-10,10,15,20,25,30]:slots.append(dict(id=len(slots)+1,x=x,z=-8))
+for z in [6,21]:
+    for i in range(10):slots.append(dict(id=len(slots)+1,x=-27+i*6,z=z))
 with open(os.path.join(ROOT,'slots.json'),'w') as f:json.dump(slots,f)
 print('Slots ready',flush=True)
-box('Ground',(0,-.35,-38),(76,.5,156),grass)
-box('Market asphalt',(0,-.07,-41),(62,.18,140),asphalt)
-box('Street',(0,-.04,34),(80,.2,10),asphalt)
-box('Sidewalk',(0,.08,27),(76,.22,3),curb)
-for x in [-31.3,31.3]:box('Curb',(x,.08,-41),(.4,.3,140),curb)
+box('Ground',(0,-.35,0),(88,.5,80),grass)
+box('Market asphalt',(0,-.07,-1),(76,.18,64),asphalt)
+box('Street',(0,-.04,40),(88,.2,10),asphalt)
+box('Sidewalk',(0,.08,33),(88,.22,3),curb)
+for x in [-38.3,38.3]:box('Curb',(x,.08,-1),(.4,.3,64),curb)
 for s in slots:
     x,z=s['x'],s['z'];m=gold if s['id']<=10 else white
-    for dx in [-1.8,1.8]:box('Parking line',(x+dx,.035,z),(.065,.025,6.5),m)
-    for dz in [-3.25,3.25]:box('Parking line',(x,.035,z+dz),(3.6,.025,.065),m)
-    text('Slot number',str(s['id']),(x,.06,z-4),.68,m,True)
-    if s['id']<=10:text('VIP marking','VIP',(x,.06,z+2.65),.42,gold,True)
-for z in range(-107,24,5):
-    for x in [-28.7,28.7]:box('Lane dash',(x,.04,z),(.10,.02,1.5),white)
-for x in range(-36,37,6):box('Street dash',(x,.075,34),(2.6,.025,.12),white)
-for z in [29.8,30.8,31.8,32.8,33.8,34.8,35.8,36.8,37.8]:box('Crosswalk',(0,.08,z),(5,.02,.45),white)
+    for dx in [-2.2,2.2]:box('Parking line',(x+dx,.035,z),(.08,.025,8),m)
+    for dz in [-4,4]:box('Parking line',(x,.035,z+dz),(4.4,.025,.08),m)
+    text('Slot number',str(s['id']),(x,.06,z-4.8),.8,m,True)
+    if s['id']<=10:text('VIP marking','VIP',(x,.06,z+3.25),.42,gold,True)
+for z in range(-29,30,5):
+    for x in [-35.5,35.5]:box('Lane dash',(x,.04,z),(.10,.02,1.5),white)
+for x in range(-36,37,6):box('Street dash',(x,.075,40),(2.6,.025,.12),white)
+for z in [35.8,36.8,37.8,38.8,39.8,40.8,41.8,42.8,43.8]:box('Crosswalk',(0,.08,z),(5,.02,.45),white)
 
 fence_before=set(bpy.context.scene.objects)
 print('Building fences',flush=True)
@@ -130,10 +128,10 @@ def fence(x,z,length,along_x):
         a=-length/2+i*.45;box('Fence picket',(x+a if along_x else x,1,z if along_x else z+a),(.06,2,.06),iron)
     for i in range(int(length/5)+1):
         a=-length/2+i*5;box('Fence pillar',(x+a if along_x else x,1.15,z if along_x else z+a),(.25,2.3,.25),iron)
-fence(-31,-42,138,False);fence(31,-42,138,False);fence(0,-111,62,True)
-fence(-18,25,26,True);fence(18,25,26,True)
-for x in [-5,5]:box('Entrance pillar',(x,1.4,25),(.85,2.8,.85),curb)
-text('Entry title','AUTO BAZAR',(0,.15,25),.8,white,True)
+fence(-38,-1,64,False);fence(38,-1,64,False);fence(0,-33,76,True)
+fence(-21.5,31,33,True);fence(21.5,31,33,True)
+for x in [-5,5]:box('Entrance pillar',(x,1.4,31),(.85,2.8,.85),curb)
+text('Entry title','AUTO BAZAR',(0,.15,31),.8,white,True)
 save_part('fence-and-gates',set(bpy.context.scene.objects)-fence_before)
 
 # Central glass office, canopy, door and planted entrance.
@@ -169,33 +167,36 @@ def tree(x,z,scale=1):
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=s*scale,location=coord(x+dx*scale,dy*scale,z+dz*scale))
         o=bpy.context.object;o.name='Tree crown';o.data.materials.append(random.choice(leaf))
         for p in o.data.polygons:p.use_smooth=True
-for z in range(-112,25,6):
-    for x in [-35,35]:tree(x+random.uniform(-.6,.6),z,random.uniform(.85,1.2))
-for x in range(-30,31,6):tree(x,-116,1.1)
-for x in [-25,-15,15,25]:tree(x,28,0.7)
+for z in range(-32,31,6):
+    for x in [-42,42]:tree(x+random.uniform(-.6,.6),z,random.uniform(.85,1.2))
+for x in range(-30,31,6):tree(x,-37,1.1)
+for x in [-25,-15,15,25]:tree(x,34,0.7)
 for x in [-25,-19,-13,13,19,25]:tree(x,-22,.8)
 # Flower beds and clipped shrubs sit outside parking bays and circulation lanes.
 flower=mat('Flowers coral',(.7,.07,.12),rough=.75)
 for x in [-18,18]:
-    box('Entrance garden curb',(x,.2,22.5),(20,.4,1.7),curb,.12)
-    box('Entrance garden soil',(x,.43,22.5),(19.6,.08,1.3),bark)
+    box('Entrance garden curb',(x,.2,28.5),(20,.4,1.7),curb,.12)
+    box('Entrance garden soil',(x,.43,28.5),(19.6,.08,1.3),bark)
     for n in range(16):
         xx=x-9+n*1.2
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=.48,location=coord(xx,.65,22.5))
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=.48,location=coord(xx,.65,28.5))
         bpy.context.object.name='Clipped entrance shrub';bpy.context.object.data.materials.append(leaf[n%3])
         for offset in [-.15,.15]:
-            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.12,location=coord(xx+offset,1.08,22.5))
+            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.12,location=coord(xx+offset,1.08,28.5))
             bpy.context.object.data.materials.append(flower)
 save_part('trees',set(bpy.context.scene.objects)-trees_before)
 lights_before=set(bpy.context.scene.objects)
-for z in [-20,-44,-68,-92,23]:
-    for x in [-30,30]:
+for z in [-26,-6,14,29]:
+    for x in [-37,37]:
         box('Lamp pole',(x,3,z),(.12,6,.12),iron)
         box('Lamp head',(x,6,z),(.8,.1,.35),white,.05)
 save_part('street-lamps',set(bpy.context.scene.objects)-lights_before)
 setup_camera()
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(SRC,'market.blend'))
 merge_materials('Market_');export('market')
+if '--market-only' in args:
+    print('30-slot market built:',ROOT)
+    sys.exit(0)
 
 # Original generic vehicle designs: distinct sedan, SUV and hatchback, no manufacturer logos.
 palette={'black':(.018,.024,.027),'white':(.80,.83,.81),'silver':(.38,.43,.45),'red':(.48,.018,.025),
