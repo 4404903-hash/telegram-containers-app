@@ -20,7 +20,10 @@ const message = r => ({id:r.id,listingId:r.listing_id,listingTitle:r.listing_tit
 
 async function createGame(env=process.env, suppliedPool) {
   const demo = env.DEMO_MODE === 'true';
-  const durationHours = Number(env.LISTING_DURATION_HOURS || 168);
+  const configuredDurationHours = Number(env.LISTING_DURATION_HOURS);
+const durationHours = Number.isInteger(configuredDurationHours) && configuredDurationHours > 0
+  ? configuredDurationHours
+  : 168;
   if (!demo && !env.BOT_TOKEN) throw Error('BOT_TOKEN is required');
   if (!demo && !/^https:\/\//.test(env.APP_URL||'')) throw Error('HTTPS APP_URL is required');
   if (demo && env.NODE_ENV === 'production') throw Error('DEMO_MODE must be false in production');
@@ -108,7 +111,7 @@ async function createGame(env=process.env, suppliedPool) {
         !Number.isInteger(year)||year<1950||year>new Date().getFullYear()+1||!Number.isFinite(price)||price<1||price>100000000||
         !COLORS.includes(color)||!['sedan','suv','hatchback'].includes(body)) fail('Перевірте марку, модель, рік, ціну, колір та опис');
       const details=await prepareDetails(p);
-      const vip=p.vip===true||p.vip==='true';
+      const vip=p?.vip===true;
       const c=await pool.connect();let value;
       try {
         await c.query('BEGIN');
@@ -123,7 +126,7 @@ async function createGame(env=process.env, suppliedPool) {
         }
         const r=await c.query(`INSERT INTO listings(id,seller_id,seller_name,brand,model,year,price,description,color,body_type,slot_id,spot,zone,status,expires_at)
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,1,'active',NOW() + $12::int * INTERVAL '1 hour') RETURNING *`,
-          [,user.id,user.name,brand,model,year,price,description,color,body,free.rows[0].s]);
+          [crypto.randomUUID(),user.id,user.name,brand,model,year,price,description,color,body,free.rows[0].s,durationHours]);
         await c.query('UPDATE listings SET city=$2,mileage=$3 WHERE id=$1',[r.rows[0].id,details.city,details.mileage]);
         for(let i=0;i<details.photos.length;i++) await c.query('INSERT INTO listing_photos(listing_id,position,data) VALUES($1,$2,$3)',[r.rows[0].id,i,details.photos[i]]);
         value=listing({...r.rows[0],city:details.city,mileage:details.mileage,photo_count:details.photos.length});await c.query('COMMIT');
@@ -175,7 +178,7 @@ async function createGame(env=process.env, suppliedPool) {
         if(!known.rowCount && (l.status!=='active'||new Date(l.expires_at)<=new Date())) fail('Термін оголошення завершився');
         const result=await c.query(`INSERT INTO messages(id,listing_id,listing_title,from_user_id,from_name,to_user_id,text,client_id)
           VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(from_user_id,client_id) DO UPDATE SET client_id=EXCLUDED.client_id RETURNING *`,
-          [,l.id,`${l.brand} ${l.model}`,user.id,user.name,to,text,clientId]);
+          [crypto.randomUUID(),l.id,`${l.brand} ${l.model}`,user.id,user.name,to,text,clientId]);
         value=message(result.rows[0]);
         if(/^\d+$/.test(to) && env.BOT_TOKEN) await c.query(`INSERT INTO notification_outbox(id,recipient,text) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING`,
           [value.id,to,`У вас нове повідомлення від ${user.name}\n${l.brand} ${l.model}\n\n${text}`]);
