@@ -31,10 +31,10 @@ test('Marketplace integration with PostgreSQL engine and two live socket clients
   const req=(s,e,p)=>s.timeout(8000).emitWithAck(e,p);
   const payload={brand:'BMW',model:'320i',year:2020,price:18000,description:'Good condition',color:'red',bodyType:'sedan'};
   let l;
-  await t.test('Concurrent listings get different slots and exactly 24 hours',async()=>{
+  await t.test('Concurrent listings get different slots and exactly 168 hours',async()=>{
     const results=await Promise.all([req(seller,'listing:create',payload),req(buyer,'listing:create',{...payload,model:'X5'})]);
     results.forEach(r=>assert.equal(r.ok,true));assert.notEqual(results[0].data.slotId,results[1].data.slotId);
-    l=results[0].data;assert.equal(new Date(l.expiresAt)-new Date(l.createdAt),86400000);
+    l=results[0].data;assert.equal(new Date(l.expiresAt)-new Date(l.createdAt),604800000);
   });
   await t.test('Invalid input and unauthorized removal rejected',async()=>{
     assert.equal((await req(seller,'listing:create',{...payload,price:-1})).ok,false);
