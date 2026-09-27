@@ -12,10 +12,12 @@ export async function createMarket(onSelect,onOffice) {
   const scene=new THREE.Scene();scene.background=new THREE.Color('#74815f');
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
   scene.environment=pmrem.fromScene(room,.04).texture;room.dispose();pmrem.dispose();scene.environmentIntensity=.55;
-  const camera=new THREE.OrthographicCamera(-34,34,27,-27,.1,400);
+  const camera=new THREE.OrthographicCamera(-30,30,30,-30,.1,400);
+  const cameraOffset=new THREE.Vector3(0,50,68);
+  const homeTarget=new THREE.Vector3(0,0,5);
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
-  controls.minZoom=.45;controls.maxZoom=3;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
+  controls.dampingFactor=.1;controls.minZoom=.55;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
   controls.touches.ONE=THREE.TOUCH.PAN;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
   scene.add(new THREE.HemisphereLight(0xe9f3ff,0x454829,1.4));
   const sun=new THREE.DirectionalLight(0xffedcc,2.3);sun.position.set(-28,48,24);sun.castShadow=true;
@@ -63,14 +65,24 @@ export async function createMarket(onSelect,onOffice) {
     const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),point=new THREE.Vector3();
     raycaster.ray.intersectPlane(plane,point);if(Math.abs(point.x)<7&&point.z>-20&&point.z<-8)onOffice();
   });
-  function reset(z=-8) {camera.position.set(0,54,z+56);controls.target.set(0,0,z);camera.zoom=1;camera.updateProjectionMatrix();controls.update();}
+  let cameraMove=null;
+  function setView(x,z,zoom=1,immediate=false) {
+    const target=new THREE.Vector3(x,0,z),position=target.clone().add(cameraOffset);
+    if(immediate){controls.target.copy(target);camera.position.copy(position);camera.zoom=zoom;camera.updateProjectionMatrix();controls.update();return;}
+    cameraMove={started:performance.now(),duration:420,fromTarget:controls.target.clone(),toTarget:target,
+      fromPosition:camera.position.clone(),toPosition:position,fromZoom:camera.zoom,toZoom:zoom};
+  }
+  function reset(z=homeTarget.z,immediate=false) {setView(homeTarget.x,z,1,immediate);}
   function resize() {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
-    const height=w<700?105:Math.max(57,73*h/w);const width=height*w/h;
-    camera.left=-width/2;camera.right=width/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
+    const aspect=w/Math.max(h,1);
+    const viewWidth=aspect<.8?56:aspect<1.25?64:aspect<1.7?72:78;
+    const height=viewWidth/aspect;
+    camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
   }
-  reset();resize();window.addEventListener('resize',resize);
-  function pan(dx,dz) {const v=new THREE.Vector3(dx,0,dz);camera.position.add(v);controls.target.add(v);controls.update();}
+  reset(homeTarget.z,true);resize();window.addEventListener('resize',resize);
+  controls.addEventListener('start',()=>cameraMove=null);
+  function pan(dx,dz) {cameraMove=null;const v=new THREE.Vector3(dx,0,dz);camera.position.add(v);controls.target.add(v);controls.update();}
   const buttons=document.querySelectorAll('[data-pan]');let movement=null;
   buttons.forEach(b=>{
     b.addEventListener('pointerdown',e=>{b.setPointerCapture(e.pointerId);movement={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[b.dataset.pan];});
@@ -79,17 +91,23 @@ export async function createMarket(onSelect,onOffice) {
   window.addEventListener('blur',()=>movement=null);
   const keys={ArrowUp:[0,-3],ArrowDown:[0,3],ArrowLeft:[-3,0],ArrowRight:[3,0],w:[0,-3],s:[0,3],a:[-3,0],d:[3,0]};
   window.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(keys[e.key]){e.preventDefault();pan(...keys[e.key]);}});
-  function zoom(v){camera.zoom=THREE.MathUtils.clamp(camera.zoom*v,.45,3);camera.updateProjectionMatrix();}
+  function zoom(v){cameraMove=null;camera.zoom=THREE.MathUtils.clamp(camera.zoom*v,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();}
   document.querySelector('#zoomIn').onclick=()=>zoom(1.2);document.querySelector('#zoomOut').onclick=()=>zoom(1/1.2);
-  document.querySelector('#resetCamera').onclick=()=>reset();let area=0;
+  document.querySelector('#resetCamera').onclick=()=>{area=0;select(null);reset();};let area=0;
   document.querySelector('#nextArea').onclick=()=>{area=(area+1)%4;reset([5,-36,-66,-96][area]);};
   let last=performance.now();
   renderer.setAnimationLoop(now=>{
     const dt=Math.min((now-last)/1000,.05);last=now;
     if(document.hidden)return;
-    if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20,movement[1]*dt*20);
+    if(cameraMove){const progress=Math.min(1,(now-cameraMove.started)/cameraMove.duration),ease=1-Math.pow(1-progress,3);
+      controls.target.lerpVectors(cameraMove.fromTarget,cameraMove.toTarget,ease);
+      camera.position.lerpVectors(cameraMove.fromPosition,cameraMove.toPosition,ease);
+      camera.zoom=THREE.MathUtils.lerp(cameraMove.fromZoom,cameraMove.toZoom,ease);camera.updateProjectionMatrix();
+      if(progress===1)cameraMove=null;
+    }
+    if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20/camera.zoom,movement[1]*dt*20/camera.zoom);
     controls.update();
-    const target=controls.target.clone();controls.target.x=THREE.MathUtils.clamp(target.x,-32,32);controls.target.z=THREE.MathUtils.clamp(target.z,-108,26);
+    const target=controls.target.clone();controls.target.x=THREE.MathUtils.clamp(target.x,-26,26);controls.target.z=THREE.MathUtils.clamp(target.z,-104,18);
     camera.position.add(controls.target.clone().sub(target));
     sun.target.position.copy(controls.target);sun.position.copy(controls.target).add(new THREE.Vector3(-28,48,24));
     document.querySelector('#mapArea').textContent=controls.target.z>-21?'Центральна площадка · 1–30':controls.target.z>-51?'Північна площадка · 31–50':controls.target.z>-81?'Північна площадка · 51–80':'Північна площадка · 81–100';
@@ -114,7 +132,7 @@ export async function createMarket(onSelect,onOffice) {
           if(m.material.name.startsWith('BodyPaint')){m.material=m.material.clone();m.material.color.set(colors[l.color]||colors.black);m.userData.ownMaterial=true;}}});
         models.set(l.id,model);carLayer.add(model);
       }
-    }, focus(id){select(id);const o=models.get(id);if(o){reset(o.position.z);pan(o.position.x,0);camera.zoom=1.45;camera.updateProjectionMatrix();}},
+    }, focus(id){select(id);const o=models.get(id);if(o)setView(o.position.x,o.position.z,1.7);},
     setQuality(high){renderer.shadowMap.enabled=high;renderer.setPixelRatio(high?Math.min(devicePixelRatio,1.5):1);resize();},
     reset
   };
