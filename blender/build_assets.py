@@ -1,5 +1,5 @@
 """Blender 4.5: blender --background --python blender/build_assets.py -- --output public/assets/models"""
-import bpy, math, os, sys, json, random
+import bpy, bmesh, math, os, sys, json, random
 from mathutils import Vector
 args=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 ROOT=os.path.abspath(args[args.index('--output')+1] if '--output' in args else 'public/assets/models')
@@ -39,6 +39,10 @@ def text(name,label,pos,size,material,flat=False):
     bpy.ops.object.convert(target='MESH');return o
 def clear():
     bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
+def outward_normals(mesh):
+    bm=bmesh.new();bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
+    bm.to_mesh(mesh);bm.free();mesh.update()
 def merge_materials(prefix=''):
     groups={}
     for o in list(bpy.context.scene.objects):
@@ -103,11 +107,11 @@ for z in [6,21]:
     for i in range(10):slots.append(dict(id=len(slots)+1,x=-27+i*6,z=z))
 with open(os.path.join(ROOT,'slots.json'),'w') as f:json.dump(slots,f)
 print('Slots ready',flush=True)
-box('Ground',(0,-.35,0),(88,.5,80),grass)
-box('Market asphalt',(0,-.07,-1),(76,.18,64),asphalt)
+box('Ground',(0,-.35,-2),(96,.5,96),grass)
+box('Market asphalt',(0,-.07,-7),(76,.18,76),asphalt)
 box('Street',(0,-.04,40),(88,.2,10),asphalt)
 box('Sidewalk',(0,.08,33),(88,.22,3),curb)
-for x in [-38.3,38.3]:box('Curb',(x,.08,-1),(.4,.3,64),curb)
+for x in [-38.3,38.3]:box('Curb',(x,.08,-7),(.4,.3,76),curb)
 for s in slots:
     x,z=s['x'],s['z'];m=gold if s['id']<=10 else white
     for dx in [-2.2,2.2]:box('Parking line',(x+dx,.035,z),(.08,.025,8),m)
@@ -128,7 +132,7 @@ def fence(x,z,length,along_x):
         a=-length/2+i*.45;box('Fence picket',(x+a if along_x else x,1,z if along_x else z+a),(.06,2,.06),iron)
     for i in range(int(length/5)+1):
         a=-length/2+i*5;box('Fence pillar',(x+a if along_x else x,1.15,z if along_x else z+a),(.25,2.3,.25),iron)
-fence(-38,-1,64,False);fence(38,-1,64,False);fence(0,-33,76,True)
+fence(-38,-7,76,False);fence(38,-7,76,False);fence(0,-45,76,True)
 fence(-21.5,31,33,True);fence(21.5,31,33,True)
 for x in [-5,5]:box('Entrance pillar',(x,1.4,31),(.85,2.8,.85),curb)
 text('Entry title','AUTO BAZAR',(0,.15,31),.8,white,True)
@@ -137,7 +141,22 @@ save_part('fence-and-gates',set(bpy.context.scene.objects)-fence_before)
 # Central glass office, canopy, door and planted entrance.
 office_before=set(bpy.context.scene.objects)
 box('Office platform',(0,.16,-14),(14,.4,12),curb,.10)
+stone=mat('Office sandstone',(.46,.40,.30),rough=.83)
+wood=mat('Bench timber',(.23,.12,.052),rough=.72)
+trim=mat('Brushed aluminium',(.32,.36,.38),metal=.85,rough=.27)
+led=mat('Warm architectural light',(1,.80,.46),rough=.3)
+led_shader=led.node_tree.nodes.get('Principled BSDF')
+led_shader.inputs['Emission Color'].default_value=(1,.72,.35,1)
+led_shader.inputs['Emission Strength'].default_value=2
 box('Office walls',(0,3.1,-14),(11,5.8,7),glass,.07)
+# Stone piers, roof coping and glazing reveal give the facade a readable silhouette.
+for x in [-5.65,5.65]:
+    box('Stone facade pier',(x,3.05,-14),(.38,5.9,7.2),stone,.04)
+    box('Roof side coping',(x,6.36,-14),(.42,.38,7.7),trim,.035)
+for z in [-17.7,-10.2]:box('Roof edge coping',(0,6.36,z),(11.8,.38,.24),trim,.035)
+for x in [-3,2.5]:
+    box('Roof ventilation',(x,6.55,-15),(1.4,.65,1.2),trim,.08)
+    for dz in [-.4,-.2,0,.2,.4]:box('Vent louvre',(x,6.90,-15+dz),(1.15,.025,.045),iron)
 warm=mat('Warm office windows',(.62,.38,.13),metal=.35,rough=.23)
 for x in [-4.6,-2.8,.92,4.6]:
     box('Warm reflected interior',(x,2.75,-10.43),(1.65,3.7,.04),warm)
@@ -150,6 +169,7 @@ box('Office roof',(0,6.1,-14),(11.6,.28,7.6),iron,.09)
 for x in [-3.7,-1.8,0,1.8,3.7]:box('Roof skylight',(x,6.26,-14),(1.5,.05,5.8),glass,.03)
 for x in [-5.7,5.7]:box('Canopy pillar',(x,1.9,-9),(.14,3.8,.14),iron)
 box('Canopy',(0,3.9,-10),(12,.15,3),iron)
+box('Canopy light strip',(0,3.80,-8.6),(10.5,.045,.10),led,.015)
 box('Illuminated fascia',(0,3.18,-8.44),(7,.9,.15),sign,.03)
 text('AUTO BAZAR sign','AUTO BAZAR',(0,2.96,-8.32),.58,white)
 box('Office door',(0,1.36,-10.26),(1.65,2.55,.1),sign)
@@ -158,6 +178,13 @@ for i in range(3):box('Entry steps',(0,.09+i*.08,-8+i*.5),(3,.15+i*.1,.65),curb)
 for x in [-6.3,6.3]:
     box('Planter',(x,.4,-10),(1,.7,4),curb,.07)
     box('Hedge',(x,.95,-10),(.8,.9,3.8),leaf[0],.2)
+# Front paving joints and benches remain outside the doors and parking bays.
+for x in range(-6,7):box('Paving joint',(x,.369,-14),(.018,.012,11.6),stone)
+for z in range(-19,-8):box('Paving joint',(0,.369,z),(13.7,.012,.018),stone)
+for x in [-4,4]:
+    for dz in [-.24,0,.24]:box('Bench seat',(x,.85,-8.5+dz),(2.1,.09,.18),wood,.025)
+    for dx in [-.75,.75]:box('Bench leg',(x+dx,.58,-8.5),(.10,.5,.55),iron)
+    for h in [1.12,1.35]:box('Bench back',(x,h,-8.8),(2.1,.16,.08),wood,.02)
 save_part('office',set(bpy.context.scene.objects)-office_before)
 
 trees_before=set(bpy.context.scene.objects)
@@ -167,11 +194,17 @@ def tree(x,z,scale=1):
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=s*scale,location=coord(x+dx*scale,dy*scale,z+dz*scale))
         o=bpy.context.object;o.name='Tree crown';o.data.materials.append(random.choice(leaf))
         for p in o.data.polygons:p.use_smooth=True
-for z in range(-32,31,6):
+for z in range(-44,31,6):
     for x in [-42,42]:tree(x+random.uniform(-.6,.6),z,random.uniform(.85,1.2))
-for x in range(-30,31,6):tree(x,-37,1.1)
+for x in range(-36,37,6):tree(x,-49,1.1)
 for x in [-25,-15,15,25]:tree(x,34,0.7)
 for x in [-25,-19,-13,13,19,25]:tree(x,-22,.8)
+# A landscaped strip behind each VIP wing leaves the name sculptures unobstructed.
+for x in [-25,25]:
+    box('VIP garden edge',(x,.22,-17),(15,.44,2),curb,.1)
+    box('VIP garden soil',(x,.47,-17),(14.6,.06,1.6),bark)
+    for dx in [-6,-3,0,3,6]:
+        box('VIP clipped hedge',(x+dx,.85,-17),(2.2,.85,1.2),leaf[0],.25)
 # Flower beds and clipped shrubs sit outside parking bays and circulation lanes.
 flower=mat('Flowers coral',(.7,.07,.12),rough=.75)
 for x in [-18,18]:
@@ -190,6 +223,12 @@ for z in [-26,-6,14,29]:
     for x in [-37,37]:
         box('Lamp pole',(x,3,z),(.12,6,.12),iron)
         box('Lamp head',(x,6,z),(.8,.1,.35),white,.05)
+# Low path lights and wheel stops identify the ten premium bays.
+for s in slots[:10]:
+    box('VIP wheel stop',(s['x'],.14,s['z']-3.5),(2.6,.24,.35),curb,.07)
+    for dx in [-.8,.8]:box('Wheel stop reflector',(s['x']+dx,.27,s['z']-3.5),(.32,.035,.30),gold)
+    box('VIP bollard',(s['x']+2.35,.65,-14),(.16,1.3,.16),iron,.025)
+    box('VIP bollard light',(s['x']+2.35,1.24,-14),(.18,.13,.18),led,.02)
 save_part('street-lamps',set(bpy.context.scene.objects)-lights_before)
 setup_camera()
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(SRC,'market.blend'))
@@ -222,6 +261,7 @@ def car(kind,color):
         for k in range(12):faces.append((j*12+k,j*12+(k+1)%12,(j+1)*12+(k+1)%12,(j+1)*12+k))
     faces.append(tuple(range((len(rings)-1)*12,len(rings)*12)))
     mesh=bpy.data.meshes.new('Sculpted vehicle shell');mesh.from_pydata(verts,[],faces);mesh.update()
+    outward_normals(mesh)
     shell=bpy.data.objects.new('Sculpted body',mesh);bpy.context.collection.objects.link(shell);mesh.materials.append(paint)
     for face in mesh.polygons:face.use_smooth=True
     bevel=shell.modifiers.new('Rounded body seams','BEVEL');bevel.width=.055;bevel.segments=3
@@ -233,6 +273,7 @@ def car(kind,color):
         verts=[coord(-wide,bottom,z0),coord(wide,bottom,z0),coord(wide,bottom,z1),coord(-wide,bottom,z1),
                coord(-narrow,top,roof0),coord(narrow,top,roof0),coord(narrow,top,roof1),coord(-narrow,top,roof1)]
         mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]);mesh.update()
+        outward_normals(mesh)
         o=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(o);o.data.materials.append(material)
         bevel=o.modifiers.new('Window edge','BEVEL');bevel.width=.04;bevel.segments=2;bpy.context.view_layer.objects.active=o
         bpy.ops.object.modifier_apply(modifier=bevel.name)
@@ -265,12 +306,46 @@ def car(kind,color):
                 o.rotation_euler.x=a
     if kind=='suv':
         for x in [-.62,.62]:box('Roof rail',(x,roof+.13,-.45),(.07,.12,1.8),chrome,.03)
+    if kind=='sedan':
+        # Actual trim geometry stays visible when the car is inspected close up.
+        for x in [-width*.475,width*.475]:
+            box('Window belt chrome',(x,.98,-.15),(.035,.035,2.45),chrome,.012)
+            box('Painted side sill',(x,.40,0),(.10,.13,2.75),paint,.035)
+            for z in [-.12,-1.12]:box('Panel shut line',(x*1.006,.73,z),(.012,.35,.015),dark)
+            for z,angle in [(.77,-.54),(-1.15,.48)]:
+                pillar=box('Sloping window pillar',(x*.91,1.18,z),(.07,.57,.065),paint,.018)
+                pillar.rotation_euler.x=angle
+        for x in [-.56,.56]:
+            box('LED daytime running light',(x,.70,length*.489),(.44,.035,.035),lamp,.014)
+            box('Rear LED signature',(x,.75,-length*.481),(.46,.035,.035),tail,.012)
+        for x in [-.28,-.14,0,.14,.28]:box('Grille vertical fin',(x,.56,length/2+.04),(.018,.14,.025),chrome,.006)
+        box('Front lower intake',(0,.35,length/2+.035),(1.1,.10,.04),dark,.025)
+        box('Trunk lip',(0,1.01,-1.7),(1.35,.055,.13),paint,.025)
+        box('Rear diffuser',(0,.33,-length/2-.02),(1.1,.15,.12),dark,.03)
+        for x in [-.62,.62]:
+            box('Exhaust surround',(x,.35,-length/2-.08),(.22,.09,.13),chrome,.03)
+        # Tire shoulders, brake discs, alloy spokes and hubs replace flat wheel faces.
+        for x in [-width/2,width/2]:
+            for z in [-length*.30,length*.30]:
+                side=1 if x>0 else -1
+                bpy.ops.mesh.primitive_torus_add(major_radius=.285,minor_radius=.065,major_segments=32,minor_segments=8,
+                    location=coord(x+side*.10,.37,z),rotation=(0,math.pi/2,0))
+                bpy.context.object.name='Rounded tire shoulder';bpy.context.object.data.materials.append(dark)
+                for p in bpy.context.object.data.polygons:p.use_smooth=True
+                for k in range(5):
+                    a=k*math.tau/5
+                    spoke=box('Forged alloy spoke',(x+side*.135,.37+math.cos(a)*.11,z+math.sin(a)*.11),(.025,.22,.04),chrome,.01)
+                    spoke.rotation_euler.x=a
+                box('Wheel centre',(x+side*.15,.37,z),(.035,.09,.09),chrome,.025)
     merge_materials()
 
 for kind in ['sedan','suv','hatchback']:
     clear();car(kind,'silver');export(kind)
     setup_camera((0,.6,0),(5,5,8),7)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(SRC,kind+'.blend'))
+    if '--fragment-only' in args:
+        print('Square market and detailed sedan built:',ROOT)
+        sys.exit(0)
 clear()
 for row,kind in enumerate(['sedan','suv','hatchback']):
     for col,color in enumerate(palette):

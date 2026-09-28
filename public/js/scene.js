@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export async function createMarket(onSelect,onOffice) {
@@ -8,20 +7,27 @@ export async function createMarket(onSelect,onOffice) {
   const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.15;host.append(renderer.domElement);
+  renderer.toneMappingExposure=1.05;host.append(renderer.domElement);
   const scene=new THREE.Scene();scene.background=new THREE.Color('#74815f');
-  const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
-  scene.environment=pmrem.fromScene(room,.04).texture;room.dispose();pmrem.dispose();scene.environmentIntensity=.55;
+  // Outdoor sky and horizon reflections, generated locally without texture downloads.
+  const sky=document.createElement('canvas');sky.width=512;sky.height=256;
+  const skyContext=sky.getContext('2d'),gradient=skyContext.createLinearGradient(0,0,0,256);
+  for(const [stop,color] of [[0,'#638aae'],[.46,'#dce9e8'],[.52,'#8b957b'],[1,'#414b37']])gradient.addColorStop(stop,color);
+  skyContext.fillStyle=gradient;skyContext.fillRect(0,0,512,256);
+  const skyTexture=new THREE.CanvasTexture(sky);skyTexture.mapping=THREE.EquirectangularReflectionMapping;
+  skyTexture.colorSpace=THREE.SRGBColorSpace;
+  const pmrem=new THREE.PMREMGenerator(renderer);
+  scene.environment=pmrem.fromEquirectangular(skyTexture).texture;skyTexture.dispose();pmrem.dispose();scene.environmentIntensity=.8;
   const camera=new THREE.OrthographicCamera(-30,30,30,-30,.1,400);
-  const cameraOffset=new THREE.Vector3(0,50,68);
-  const homeTarget=new THREE.Vector3(0,0,2);
+  const cameraOffset=new THREE.Vector3(0,44,72);
+  const homeTarget=new THREE.Vector3(0,0,-5);
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
-  controls.dampingFactor=.1;controls.minZoom=.55;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
+  controls.dampingFactor=.1;controls.minZoom=1;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
   controls.touches.ONE=THREE.TOUCH.PAN;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
-  scene.add(new THREE.HemisphereLight(0xe9f3ff,0x454829,1.4));
-  const sun=new THREE.DirectionalLight(0xffedcc,2.3);sun.position.set(-28,48,24);sun.castShadow=true;
-  sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-50,right:50,top:65,bottom:-65,near:1,far:180});
+  scene.add(new THREE.HemisphereLight(0xddeaff,0x4e4836,1.1));
+  const sun=new THREE.DirectionalLight(0xffe7c1,2.6);sun.position.set(-40,60,35);sun.target.position.set(0,0,-7);sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-65,right:65,top:65,bottom:-65,near:1,far:180});
   sun.shadow.bias=-.0003;sun.shadow.normalBias=.035;scene.add(sun);scene.add(sun.target);
   const loader=new GLTFLoader();
   const [market,sedan,suv,hatchback,slots,names]=await Promise.all([
@@ -31,17 +37,30 @@ export async function createMarket(onSelect,onOffice) {
     loader.loadAsync('/assets/models/office-names.glb')]);
   names.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
   scene.add(names.scene);
-  const noise=document.createElement('canvas');noise.width=noise.height=256;
-  const ctx=noise.getContext('2d'),pixels=ctx.createImageData(256,256);let seed=41;
-  for(let i=0;i<pixels.data.length;i+=4){seed=(seed*1664525+1013904223)>>>0;const v=110+(seed>>>24)%45;
+  const noise=document.createElement('canvas');noise.width=noise.height=512;
+  const ctx=noise.getContext('2d'),pixels=ctx.createImageData(512,512);let seed=41;
+  for(let i=0;i<pixels.data.length;i+=4){seed=(seed*1664525+1013904223)>>>0;const v=130+(seed>>>24)%65;
     pixels.data[i]=v;pixels.data[i+1]=v;pixels.data[i+2]=v;pixels.data[i+3]=255;}
   ctx.putImageData(pixels,0,0);const asphaltTexture=new THREE.CanvasTexture(noise);
-  asphaltTexture.wrapS=asphaltTexture.wrapT=THREE.RepeatWrapping;asphaltTexture.repeat.set(20,40);
+  asphaltTexture.wrapS=asphaltTexture.wrapT=THREE.RepeatWrapping;asphaltTexture.colorSpace=THREE.SRGBColorSpace;
+  asphaltTexture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+  market.scene.updateMatrixWorld(true);
   market.scene.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=true;
-    if(o.material.name==='Asphalt'){o.material.color.set('#626960');o.material.map=asphaltTexture;o.material.roughness=1;}
-    if(o.material.name==='Grass')o.material.color.set('#526430');
+    if(o.material.name==='Asphalt'){
+      const positions=o.geometry.attributes.position,uv=new Float32Array(positions.count*2),point=new THREE.Vector3();
+      for(let i=0;i<positions.count;i++){point.fromBufferAttribute(positions,i).applyMatrix4(o.matrixWorld);uv[i*2]=point.x/6;uv[i*2+1]=point.z/6;}
+      o.geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+      o.material.color.set('#666963');o.material.map=asphaltTexture;o.material.bumpMap=asphaltTexture;o.material.bumpScale=.035;o.material.roughness=.94;
+    }
+    if(o.material.name==='Grass')o.material.color.set('#536544');
   }});scene.add(market.scene);
   const templates={sedan:sedan.scene,suv:suv.scene,hatchback:hatchback.scene};
+  const shadowCanvas=document.createElement('canvas');shadowCanvas.width=shadowCanvas.height=64;
+  const shadowContext=shadowCanvas.getContext('2d'),contact=shadowContext.createRadialGradient(32,32,8,32,32,32);
+  contact.addColorStop(0,'rgba(0,0,0,.48)');contact.addColorStop(.65,'rgba(0,0,0,.22)');contact.addColorStop(1,'rgba(0,0,0,0)');
+  shadowContext.fillStyle=contact;shadowContext.fillRect(0,0,64,64);
+  const contactMaterial=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(shadowCanvas),transparent:true,depthWrite:false});
+  const contactGeometry=new THREE.PlaneGeometry(2.7,5.4);
   const colors={black:'#141b20',white:'#edf0e9',silver:'#a5afb1',red:'#a81721',blue:'#175bc0',green:'#23734b',yellow:'#ffc229',purple:'#713bae'};
   let selected=null;const metadata=new Map();
   const marker=document.createElement('button');marker.className='price-marker';marker.hidden=true;host.append(marker);
@@ -67,6 +86,7 @@ export async function createMarket(onSelect,onOffice) {
   });
   let cameraMove=null;
   function setView(x,z,zoom=1,immediate=false) {
+    zoom=THREE.MathUtils.clamp(zoom,controls.minZoom,controls.maxZoom);
     const target=new THREE.Vector3(x,0,z),position=target.clone().add(cameraOffset);
     if(immediate){controls.target.copy(target);camera.position.copy(position);camera.zoom=zoom;camera.updateProjectionMatrix();controls.update();return;}
     cameraMove={started:performance.now(),duration:420,fromTarget:controls.target.clone(),toTarget:target,
@@ -76,7 +96,8 @@ export async function createMarket(onSelect,onOffice) {
   function resize() {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
     const aspect=w/Math.max(h,1);
-    const viewWidth=Math.max(74,54*aspect);
+    // At zoom=1 the view is exactly the 76-unit width of the square lot.
+    const viewWidth=76;
     const height=viewWidth/aspect;
     camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
   }
@@ -107,9 +128,9 @@ export async function createMarket(onSelect,onOffice) {
     }
     if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20/camera.zoom,movement[1]*dt*20/camera.zoom);
     controls.update();
-    const target=controls.target.clone();controls.target.x=THREE.MathUtils.clamp(target.x,-32,32);controls.target.z=THREE.MathUtils.clamp(target.z,-20,25);
+    const target=controls.target.clone(),horizontalLimit=38-38/camera.zoom;
+    controls.target.x=THREE.MathUtils.clamp(target.x,-horizontalLimit,horizontalLimit);controls.target.z=THREE.MathUtils.clamp(target.z,-37,25);
     camera.position.add(controls.target.clone().sub(target));
-    sun.target.position.copy(controls.target);sun.position.copy(controls.target).add(new THREE.Vector3(-28,48,24));
     document.querySelector('#mapArea').textContent='Центральна площадка · 1–30';
     if(selected&&models.has(selected)){
       const p=models.get(selected).position.clone().add(new THREE.Vector3(0,3.5,0)).project(camera);
@@ -130,7 +151,13 @@ export async function createMarket(onSelect,onOffice) {
         const model=(templates[l.bodyType]||templates.sedan).clone(true);model.userData.listingId=l.id;
         model.position.set(slot.x,.05,slot.z);model.scale.setScalar(1.25);
         model.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
-          if(m.material.name.startsWith('BodyPaint')){m.material=m.material.clone();m.material.color.set(colors[l.color]||colors.black);m.userData.ownMaterial=true;}}});
+          if(m.material.name.startsWith('BodyPaint')){
+            const original=m.material;m.material=new THREE.MeshPhysicalMaterial({color:colors[l.color]||colors.black,
+              metalness:.65,roughness:.25,clearcoat:1,clearcoatRoughness:.16,envMapIntensity:1.15});
+            m.material.name=original.name;m.userData.ownMaterial=true;
+          }}});
+        const contactShadow=new THREE.Mesh(contactGeometry,contactMaterial);contactShadow.rotation.x=-Math.PI/2;
+        contactShadow.position.y=.015;model.add(contactShadow);
         models.set(l.id,model);carLayer.add(model);
       }
     }, focus(id){select(id);const o=models.get(id);if(o)setView(o.position.x,o.position.z,1.7);},
