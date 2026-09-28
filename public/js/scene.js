@@ -63,16 +63,14 @@ export async function createMarket(onSelect,onOffice) {
   const contactMaterial=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(shadowCanvas),transparent:true,depthWrite:false});
   const contactGeometry=new THREE.PlaneGeometry(2.7,5.4);
   const colors={black:'#141b20',white:'#edf0e9',silver:'#a5afb1',red:'#a81721',blue:'#175bc0',green:'#23734b',yellow:'#ffc229',purple:'#713bae'};
-  let selected=null;const metadata=new Map();
-  const marker=document.createElement('button');marker.className='price-marker';marker.hidden=true;host.append(marker);
-  marker.onclick=()=>{if(selected)onSelect(selected);};
+  let selected=null;
   const outline=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(-1.7,.09,-3.15),new THREE.Vector3(1.7,.09,-3.15),new THREE.Vector3(1.7,.09,3.15),new THREE.Vector3(-1.7,.09,3.15)
   ]),new THREE.LineBasicMaterial({color:0x67ffac}));outline.visible=false;scene.add(outline);
   const selectedFloor=new THREE.Mesh(new THREE.PlaneGeometry(3.4,6.3),new THREE.MeshBasicMaterial({color:0x36ef96,transparent:true,opacity:.22,depthWrite:false}));
   selectedFloor.rotation.x=-Math.PI/2;outline.add(selectedFloor);selectedFloor.position.y=.08;
-  function select(id){selected=id;const o=models.get(id),l=metadata.get(id);outline.visible=!!o;marker.hidden=!o;
-    if(o&&l){outline.position.copy(o.position);marker.textContent='$ '+Number(l.price).toLocaleString('uk-UA')+' · Деталі';}}
+  function select(id){selected=id;const o=models.get(id);outline.visible=!!o;
+    if(o)outline.position.copy(o.position);}
   const models=new Map();const carLayer=new THREE.Group();scene.add(carLayer);
   const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let down=null;
   renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,time:Date.now()};});
@@ -141,26 +139,18 @@ export async function createMarket(onSelect,onOffice) {
     controls.target.x=THREE.MathUtils.clamp(target.x,-horizontalLimit,horizontalLimit);controls.target.z=THREE.MathUtils.clamp(target.z,-12,23);
     camera.position.add(controls.target.clone().sub(target));
     document.querySelector('#mapArea').textContent='Центральна площадка · 1–30';
-    if(selected&&models.has(selected)){
-      const p=models.get(selected).position.clone().add(new THREE.Vector3(0,3.5,0)).project(camera);
-      marker.hidden=Math.abs(p.x)>.94||Math.abs(p.y)>.9||!!document.querySelector('dialog[open]');
-      const rawLeft=(p.x+1)*host.clientWidth/2,markerHalf=Math.min(marker.offsetWidth/2,host.clientWidth/2-12);
-      marker.style.left=THREE.MathUtils.clamp(rawLeft,markerHalf+12,host.clientWidth-markerHalf-12)+'px';
-      marker.style.top=((-p.y+1)*host.clientHeight/2)+'px';
-    }
     renderer.render(scene,camera);
   });
   return {
     select,
     update(listings){
-      metadata.clear();listings.forEach(l=>metadata.set(l.id,l));
       const ids=new Set(listings.map(l=>l.id));
       for(const [id,o] of models)if(!ids.has(id)){carLayer.remove(o);o.traverse(m=>{if(m.userData.ownMaterial)m.material.dispose();});models.delete(id);if(selected===id)select(null);}
       for(const l of listings){
         const slot=slots.find(s=>s.id===l.slotId);if(!slot)continue;
-        if(models.has(l.id)){models.get(l.id).position.set(slot.x,.05,slot.z);continue;}
+        if(models.has(l.id)){const existing=models.get(l.id);existing.position.set(slot.x,.05,slot.z);existing.rotation.y=Math.PI;continue;}
         const model=(templates[l.bodyType]||templates.sedan).clone(true);model.userData.listingId=l.id;
-        model.position.set(slot.x,.05,slot.z);model.scale.setScalar(1.25);
+        model.position.set(slot.x,.05,slot.z);model.rotation.y=Math.PI;model.scale.setScalar(1.25);
         model.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
           if(m.material.name.startsWith('BodyPaint')){
             const original=m.material,stylized=(l.bodyType||'sedan')==='sedan';m.material=new THREE.MeshPhysicalMaterial({color:colors[l.color]||colors.black,
