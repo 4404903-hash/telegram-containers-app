@@ -21,6 +21,7 @@ export async function createMarket(onSelect,onOffice) {
   const camera=new THREE.OrthographicCamera(-30,30,30,-30,.1,400);
   const cameraOffset=new THREE.Vector3(0,44,72);
   const homeTarget=new THREE.Vector3(0,0,-5);
+  const isCompactView=()=>host.clientWidth<=700;
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
   controls.dampingFactor=.1;controls.minZoom=1;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
@@ -92,16 +93,18 @@ export async function createMarket(onSelect,onOffice) {
     cameraMove={started:performance.now(),duration:420,fromTarget:controls.target.clone(),toTarget:target,
       fromPosition:camera.position.clone(),toPosition:position,fromZoom:camera.zoom,toZoom:zoom};
   }
-  function reset(z=homeTarget.z,immediate=false) {setView(homeTarget.x,z,1,immediate);}
+  function reset(z=isCompactView()?-12:homeTarget.z,immediate=false) {setView(homeTarget.x,z,1,immediate);}
   function resize() {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
     const aspect=w/Math.max(h,1);
-    // At zoom=1 the view is exactly the 76-unit width of the square lot.
-    const viewWidth=76;
+    // Mobile starts closer to the active bays; zooming out still reveals the full lot.
+    const viewWidth=isCompactView()?52:76;
     const height=viewWidth/aspect;
     camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
+    controls.minZoom=isCompactView()?.68:1;
+    camera.zoom=THREE.MathUtils.clamp(camera.zoom,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();
   }
-  reset(homeTarget.z,true);resize();window.addEventListener('resize',resize);
+  resize();reset(undefined,true);window.addEventListener('resize',resize);
   controls.addEventListener('start',()=>cameraMove=null);
   function pan(dx,dz) {cameraMove=null;const v=new THREE.Vector3(dx,0,dz);camera.position.add(v);controls.target.add(v);controls.update();}
   const buttons=document.querySelectorAll('[data-pan]');let movement=null;
@@ -135,7 +138,9 @@ export async function createMarket(onSelect,onOffice) {
     if(selected&&models.has(selected)){
       const p=models.get(selected).position.clone().add(new THREE.Vector3(0,3.5,0)).project(camera);
       marker.hidden=Math.abs(p.x)>.94||Math.abs(p.y)>.9||!!document.querySelector('dialog[open]');
-      marker.style.left=((p.x+1)*host.clientWidth/2)+'px';marker.style.top=((-p.y+1)*host.clientHeight/2)+'px';
+      const rawLeft=(p.x+1)*host.clientWidth/2,markerHalf=Math.min(marker.offsetWidth/2,host.clientWidth/2-12);
+      marker.style.left=THREE.MathUtils.clamp(rawLeft,markerHalf+12,host.clientWidth-markerHalf-12)+'px';
+      marker.style.top=((-p.y+1)*host.clientHeight/2)+'px';
     }
     renderer.render(scene,camera);
   });
@@ -165,3 +170,4 @@ export async function createMarket(onSelect,onOffice) {
     reset
   };
 }
+
