@@ -18,14 +18,13 @@ export async function createMarket(onSelect,onOffice) {
   skyTexture.colorSpace=THREE.SRGBColorSpace;
   const pmrem=new THREE.PMREMGenerator(renderer);
   scene.environment=pmrem.fromEquirectangular(skyTexture).texture;skyTexture.dispose();pmrem.dispose();scene.environmentIntensity=.8;
-  const camera=new THREE.OrthographicCamera(-30,30,30,-30,.1,400);
-  const cameraOffset=new THREE.Vector3(0,44,72);
-  const homeTarget=new THREE.Vector3(0,0,-5);
-  const isCompactView=()=>host.clientWidth<=700;
-  let currentViewWidth=76;
+  const camera=new THREE.PerspectiveCamera(32,1,.1,600);
+  const cameraDirection=new THREE.Vector3(0,Math.sin(Math.PI*55/180),Math.cos(Math.PI*55/180));
+  const homeTarget=new THREE.Vector3(0,0,2);
+  let homeDistance=110,overviewDistance=150;
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
-  controls.dampingFactor=.1;controls.minZoom=1;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
+  controls.dampingFactor=.1;controls.minDistance=38;controls.maxDistance=150;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
   controls.touches.ONE=THREE.TOUCH.PAN;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
   scene.add(new THREE.HemisphereLight(0xddeaff,0x4e4836,1.1));
   const sun=new THREE.DirectionalLight(0xffe7c1,2.6);sun.position.set(-40,60,35);sun.target.position.set(0,0,-7);sun.castShadow=true;
@@ -88,24 +87,29 @@ export async function createMarket(onSelect,onOffice) {
   });
   let cameraMove=null;
   function setView(x,z,zoom=1,immediate=false) {
-    zoom=THREE.MathUtils.clamp(zoom,controls.minZoom,controls.maxZoom);
-    const target=new THREE.Vector3(x,0,z),position=target.clone().add(cameraOffset);
-    if(immediate){controls.target.copy(target);camera.position.copy(position);camera.zoom=zoom;camera.updateProjectionMatrix();controls.update();return;}
+    const distance=THREE.MathUtils.clamp(homeDistance/zoom,controls.minDistance,controls.maxDistance);
+    const target=new THREE.Vector3(x,0,z),position=target.clone().addScaledVector(cameraDirection,distance);
+    if(immediate){controls.target.copy(target);camera.position.copy(position);controls.update();return;}
     cameraMove={started:performance.now(),duration:420,fromTarget:controls.target.clone(),toTarget:target,
-      fromPosition:camera.position.clone(),toPosition:position,fromZoom:camera.zoom,toZoom:zoom};
+      fromPosition:camera.position.clone(),toPosition:position};
   }
-  function reset(z=isCompactView()?-12:homeTarget.z,immediate=false) {setView(homeTarget.x,z,1,immediate);}
+  function reset(z=homeTarget.z,immediate=false) {setView(homeTarget.x,z,1,immediate);}
   function resize() {
-    const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
+    const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);renderer.setSize(w,h,false);
     const aspect=w/Math.max(h,1);
-    // Mobile starts closer to the active bays; zooming out still reveals the full lot.
-    const viewWidth=isCompactView()?52:76;currentViewWidth=viewWidth;
-    const height=viewWidth/aspect;
-    camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
-    controls.minZoom=isCompactView()?.68:1;
-    camera.zoom=THREE.MathUtils.clamp(camera.zoom,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();
+    const previous=homeDistance,current=camera.position.distanceTo(controls.target);
+    camera.aspect=aspect;camera.updateProjectionMatrix();
+    // Fit the nearest edge of the 68-unit lot at the overview limit.
+    overviewDistance=34/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*aspect)+29*cameraDirection.z;
+    controls.maxDistance=overviewDistance;controls.minDistance=Math.min(38,overviewDistance*.55);
+    // Portrait starts close enough to fill the usable height; swipe to the side bays.
+    homeDistance=Math.min(115,overviewDistance);
+    cameraMove=null;
+    camera.position.copy(controls.target).addScaledVector(cameraDirection,
+      THREE.MathUtils.clamp(current/previous*homeDistance,controls.minDistance,controls.maxDistance));
+    controls.update();
   }
-  resize();reset(undefined,true);window.addEventListener('resize',resize);
+  reset(homeTarget.z,true);resize();window.addEventListener('resize',resize);
   controls.addEventListener('start',()=>cameraMove=null);
   function pan(dx,dz) {cameraMove=null;const v=new THREE.Vector3(dx,0,dz);camera.position.add(v);controls.target.add(v);controls.update();}
   const buttons=document.querySelectorAll('[data-pan]');let movement=null;
@@ -116,7 +120,8 @@ export async function createMarket(onSelect,onOffice) {
   window.addEventListener('blur',()=>movement=null);
   const keys={ArrowUp:[0,-3],ArrowDown:[0,3],ArrowLeft:[-3,0],ArrowRight:[3,0],w:[0,-3],s:[0,3],a:[-3,0],d:[3,0]};
   window.addEventListener('keydown',e=>{if(document.querySelector('dialog[open]')||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(keys[e.key]){e.preventDefault();pan(...keys[e.key]);}});
-  function zoom(v){cameraMove=null;camera.zoom=THREE.MathUtils.clamp(camera.zoom*v,controls.minZoom,controls.maxZoom);camera.updateProjectionMatrix();}
+  function zoom(v){cameraMove=null;const distance=THREE.MathUtils.clamp(camera.position.distanceTo(controls.target)/v,controls.minDistance,controls.maxDistance);
+    camera.position.copy(controls.target).addScaledVector(cameraDirection,distance);controls.update();}
   document.querySelector('#zoomIn').onclick=()=>zoom(1.2);document.querySelector('#zoomOut').onclick=()=>zoom(1/1.2);
   document.querySelector('#resetCamera').onclick=()=>{area=0;select(null);reset();};let area=0;
   document.querySelector('#nextArea').onclick=()=>{reset();};
@@ -127,13 +132,13 @@ export async function createMarket(onSelect,onOffice) {
     if(cameraMove){const progress=Math.min(1,(now-cameraMove.started)/cameraMove.duration),ease=1-Math.pow(1-progress,3);
       controls.target.lerpVectors(cameraMove.fromTarget,cameraMove.toTarget,ease);
       camera.position.lerpVectors(cameraMove.fromPosition,cameraMove.toPosition,ease);
-      camera.zoom=THREE.MathUtils.lerp(cameraMove.fromZoom,cameraMove.toZoom,ease);camera.updateProjectionMatrix();
       if(progress===1)cameraMove=null;
     }
-    if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20/camera.zoom,movement[1]*dt*20/camera.zoom);
+    if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20,movement[1]*dt*20);
     controls.update();
-    const target=controls.target.clone(),horizontalLimit=Math.max(0,38-currentViewWidth/(2*camera.zoom));
-    controls.target.x=THREE.MathUtils.clamp(target.x,-horizontalLimit,horizontalLimit);controls.target.z=THREE.MathUtils.clamp(target.z,-37,25);
+    const target=controls.target.clone(),distance=camera.position.distanceTo(target);
+    const horizontalLimit=30*(1-THREE.MathUtils.clamp((distance-controls.minDistance)/(overviewDistance-controls.minDistance),0,1));
+    controls.target.x=THREE.MathUtils.clamp(target.x,-horizontalLimit,horizontalLimit);controls.target.z=THREE.MathUtils.clamp(target.z,-12,23);
     camera.position.add(controls.target.clone().sub(target));
     document.querySelector('#mapArea').textContent='Центральна площадка · 1–30';
     if(selected&&models.has(selected)){
@@ -171,4 +176,3 @@ export async function createMarket(onSelect,onOffice) {
     reset
   };
 }
-

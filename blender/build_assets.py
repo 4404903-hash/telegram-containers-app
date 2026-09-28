@@ -108,10 +108,10 @@ for z in [6,21]:
 with open(os.path.join(ROOT,'slots.json'),'w') as f:json.dump(slots,f)
 print('Slots ready',flush=True)
 box('Ground',(0,-.35,-2),(96,.5,96),grass)
-box('Market asphalt',(0,-.07,-7),(76,.18,76),asphalt)
+box('Market asphalt',(0,-.07,-3),(68,.18,68),asphalt)
 box('Street',(0,-.04,40),(88,.2,10),asphalt)
 box('Sidewalk',(0,.08,33),(88,.22,3),curb)
-for x in [-38.3,38.3]:box('Curb',(x,.08,-7),(.4,.3,76),curb)
+for x in [-34.3,34.3]:box('Curb',(x,.08,-3),(.4,.3,68),curb)
 for s in slots:
     x,z=s['x'],s['z'];m=gold if s['id']<=10 else white
     for dx in [-2.2,2.2]:box('Parking line',(x+dx,.035,z),(.08,.025,8),m)
@@ -119,7 +119,7 @@ for s in slots:
     text('Slot number',str(s['id']),(x,.06,z-4.8),.8,m,True)
     if s['id']<=10:text('VIP marking','VIP',(x,.06,z+3.25),.42,gold,True)
 for z in range(-29,30,5):
-    for x in [-35.5,35.5]:box('Lane dash',(x,.04,z),(.10,.02,1.5),white)
+    for x in [-33,33]:box('Lane dash',(x,.04,z),(.10,.02,1.5),white)
 for x in range(-36,37,6):box('Street dash',(x,.075,40),(2.6,.025,.12),white)
 for z in [35.8,36.8,37.8,38.8,39.8,40.8,41.8,42.8,43.8]:box('Crosswalk',(0,.08,z),(5,.02,.45),white)
 
@@ -132,8 +132,8 @@ def fence(x,z,length,along_x):
         a=-length/2+i*.45;box('Fence picket',(x+a if along_x else x,1,z if along_x else z+a),(.06,2,.06),iron)
     for i in range(int(length/5)+1):
         a=-length/2+i*5;box('Fence pillar',(x+a if along_x else x,1.15,z if along_x else z+a),(.25,2.3,.25),iron)
-fence(-38,-7,76,False);fence(38,-7,76,False);fence(0,-45,76,True)
-fence(-21.5,31,33,True);fence(21.5,31,33,True)
+fence(-34,-3,68,False);fence(34,-3,68,False);fence(0,-37,68,True)
+fence(-19.5,31,29,True);fence(19.5,31,29,True)
 for x in [-5,5]:box('Entrance pillar',(x,1.4,31),(.85,2.8,.85),curb)
 text('Entry title','AUTO BAZAR',(0,.15,31),.8,white,True)
 save_part('fence-and-gates',set(bpy.context.scene.objects)-fence_before)
@@ -194,9 +194,9 @@ def tree(x,z,scale=1):
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=s*scale,location=coord(x+dx*scale,dy*scale,z+dz*scale))
         o=bpy.context.object;o.name='Tree crown';o.data.materials.append(random.choice(leaf))
         for p in o.data.polygons:p.use_smooth=True
-for z in range(-44,31,6):
-    for x in [-42,42]:tree(x+random.uniform(-.6,.6),z,random.uniform(.85,1.2))
-for x in range(-36,37,6):tree(x,-49,1.1)
+for z in range(-36,31,6):
+    for x in [-38,38]:tree(x+random.uniform(-.6,.6),z,random.uniform(.85,1.2))
+for x in range(-30,31,6):tree(x,-41,1.1)
 for x in [-25,-15,15,25]:tree(x,34,0.7)
 for x in [-25,-19,-13,13,19,25]:tree(x,-22,.8)
 # A landscaped strip behind each VIP wing leaves the name sculptures unobstructed.
@@ -220,7 +220,7 @@ for x in [-18,18]:
 save_part('trees',set(bpy.context.scene.objects)-trees_before)
 lights_before=set(bpy.context.scene.objects)
 for z in [-26,-6,14,29]:
-    for x in [-37,37]:
+    for x in [-33,33]:
         box('Lamp pole',(x,3,z),(.12,6,.12),iron)
         box('Lamp head',(x,6,z),(.8,.1,.35),white,.05)
 # Low path lights and wheel stops identify the ten premium bays.
