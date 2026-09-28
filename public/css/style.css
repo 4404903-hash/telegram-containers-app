@@ -45,3 +45,16 @@ header .profile-track { max-width: 100%; }
 
 /* Keep the leftmost VIP bays accessible at the lot-width zoom limit. */
 @media(min-width:701px){.side-nav{width:54px}.side-nav button{justify-content:center;padding:10px;min-height:54px}.side-nav b{display:none}}
+
+/* Stage 1: compact mobile viewport, safe controls and an always-readable price marker. */
+.price-marker{max-width:calc(100vw - 24px);min-height:44px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){
+  header{top:max(10px,env(safe-area-inset-top));}
+  .quick-search{top:calc(max(10px,env(safe-area-inset-top)) + 68px);}
+  .side-nav{top:calc(max(10px,env(safe-area-inset-top)) + 130px);}
+  .zoom-controls{right:10px;bottom:calc(88px + env(safe-area-inset-bottom));}
+  .demo-banner{bottom:calc(92px + env(safe-area-inset-bottom));}
+  #toast{bottom:calc(78px + env(safe-area-inset-bottom));}
+  footer button{min-height:61px;height:61px;}
+}
+
