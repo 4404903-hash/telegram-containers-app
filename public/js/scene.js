@@ -22,6 +22,7 @@ export async function createMarket(onSelect,onOffice) {
   const cameraOffset=new THREE.Vector3(0,44,72);
   const homeTarget=new THREE.Vector3(0,0,-5);
   const isCompactView=()=>host.clientWidth<=700;
+  let currentViewWidth=76;
   const controls=new OrbitControls(camera,renderer.domElement);
   controls.enableRotate=false;controls.enableDamping=true;controls.screenSpacePanning=false;
   controls.dampingFactor=.1;controls.minZoom=1;controls.maxZoom=3.2;controls.mouseButtons.LEFT=THREE.MOUSE.PAN;
@@ -98,7 +99,7 @@ export async function createMarket(onSelect,onOffice) {
     const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);
     const aspect=w/Math.max(h,1);
     // Mobile starts closer to the active bays; zooming out still reveals the full lot.
-    const viewWidth=isCompactView()?52:76;
+    const viewWidth=isCompactView()?52:76;currentViewWidth=viewWidth;
     const height=viewWidth/aspect;
     camera.left=-viewWidth/2;camera.right=viewWidth/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix();
     controls.minZoom=isCompactView()?.68:1;
@@ -131,7 +132,7 @@ export async function createMarket(onSelect,onOffice) {
     }
     if(movement&&!document.querySelector('dialog[open]'))pan(movement[0]*dt*20/camera.zoom,movement[1]*dt*20/camera.zoom);
     controls.update();
-    const target=controls.target.clone(),horizontalLimit=38-38/camera.zoom;
+    const target=controls.target.clone(),horizontalLimit=Math.max(0,38-currentViewWidth/(2*camera.zoom));
     controls.target.x=THREE.MathUtils.clamp(target.x,-horizontalLimit,horizontalLimit);controls.target.z=THREE.MathUtils.clamp(target.z,-37,25);
     camera.position.add(controls.target.clone().sub(target));
     document.querySelector('#mapArea').textContent='Центральна площадка · 1–30';
