@@ -6,7 +6,7 @@ const container = document.getElementById("carScene");
 const statusElement = document.getElementById("status");
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x18252b);
+scene.background = new THREE.Color(0x888888);
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -15,7 +15,7 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-camera.position.set(6, 7, 8);
+camera.position.set(5, 8, 8);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true
@@ -30,7 +30,7 @@ renderer.setSize(
   container.clientHeight
 );
 
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = false;
 
 container.appendChild(renderer.domElement);
 
@@ -45,43 +45,20 @@ controls.target.set(0, 0.8, 0);
 const hemisphereLight = new THREE.HemisphereLight(
   0xffffff,
   0x263238,
-  2.5
+  1.5
 );
 
 scene.add(hemisphereLight);
 
 const sunLight = new THREE.DirectionalLight(
   0xffffff,
-  4
+  2
 );
 
 sunLight.position.set(6, 10, 8);
 sunLight.castShadow = true;
 
 scene.add(sunLight);
-
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(30, 30),
-  new THREE.MeshStandardMaterial({
-    color: 0x555b5e,
-    roughness: 0.95
-  })
-);
-
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-
-scene.add(ground);
-
-const grid = new THREE.GridHelper(
-  30,
-  30,
-  0xffffff,
-  0x777777
-);
-
-grid.position.y = 0.01;
-scene.add(grid);
 
 const loader = new GLTFLoader();
 
