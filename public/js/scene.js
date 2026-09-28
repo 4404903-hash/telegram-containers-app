@@ -163,8 +163,8 @@ export async function createMarket(onSelect,onOffice) {
         model.position.set(slot.x,.05,slot.z);model.scale.setScalar(1.25);
         model.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;
           if(m.material.name.startsWith('BodyPaint')){
-            const original=m.material;m.material=new THREE.MeshPhysicalMaterial({color:colors[l.color]||colors.black,
-              metalness:.65,roughness:.25,clearcoat:1,clearcoatRoughness:.16,envMapIntensity:1.15});
+            const original=m.material,stylized=(l.bodyType||'sedan')==='sedan';m.material=new THREE.MeshPhysicalMaterial({color:colors[l.color]||colors.black,
+              metalness:stylized?.05:.65,roughness:stylized?.72:.25,clearcoat:stylized?0:1,clearcoatRoughness:.16,envMapIntensity:stylized?.35:1.15});
             m.material.name=original.name;m.userData.ownMaterial=true;
           }}});
         const contactShadow=new THREE.Mesh(contactGeometry,contactMaterial);contactShadow.rotation.x=-Math.PI/2;

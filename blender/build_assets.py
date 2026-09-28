@@ -87,6 +87,20 @@ def setup_camera(target=(0,0,5),position=(0,55,48),scale=66):
     sun.rotation_euler=(Vector((0,0,0))-sun.location).to_track_quat('-Z','Y').to_euler()
     bpy.context.scene.world.color=(.35,.4,.48)
 
+sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
+from stylized_sedan import build_sedan
+if '--sedan-only' in args:
+    clear();build_sedan(mat,box,coord,outward_normals)
+    setup_camera((0,.7,0),(6,9,9),6.4)
+    scene=bpy.context.scene;scene.render.engine='BLENDER_WORKBENCH'
+    scene.display.shading.light='STUDIO';scene.display.shading.color_type='MATERIAL'
+    scene.display.shading.show_shadows=False;scene.display.shading.show_cavity=True
+    scene.display.shading.background_type='WORLD';scene.world.color=(.32,.32,.32)
+    scene.render.resolution_x=1200;scene.render.resolution_y=1200;scene.render.resolution_percentage=100
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(SRC,'sedan.blend'))
+    scene.render.filepath=os.path.join(ROOT,'sedan-preview.png');bpy.ops.render.render(write_still=True)
+    merge_materials();export('sedan');sys.exit(0)
+
 clear()
 print('Building market',flush=True)
 asphalt=mat('Asphalt',(.19,.20,.18),rough=.96)
@@ -241,6 +255,8 @@ if '--market-only' in args:
 palette={'black':(.018,.024,.027),'white':(.80,.83,.81),'silver':(.38,.43,.45),'red':(.48,.018,.025),
          'blue':(.018,.12,.49),'green':(.025,.18,.10),'yellow':(.95,.59,.015),'purple':(.24,.055,.36)}
 def car(kind,color):
+    if kind=='sedan':
+        build_sedan(mat,box,coord,outward_normals,palette[color]);merge_materials();return
     paint=mat('BodyPaint',palette[color],.65,.24)
     dark=mat('Rubber',(.013,.015,.019),rough=.8)
     window=mat('Glass',(.025,.075,.10),.65,.17)
@@ -306,37 +322,6 @@ def car(kind,color):
                 o.rotation_euler.x=a
     if kind=='suv':
         for x in [-.62,.62]:box('Roof rail',(x,roof+.13,-.45),(.07,.12,1.8),chrome,.03)
-    if kind=='sedan':
-        # Actual trim geometry stays visible when the car is inspected close up.
-        for x in [-width*.475,width*.475]:
-            box('Window belt chrome',(x,.98,-.15),(.035,.035,2.45),chrome,.012)
-            box('Painted side sill',(x,.40,0),(.10,.13,2.75),paint,.035)
-            for z in [-.12,-1.12]:box('Panel shut line',(x*1.006,.73,z),(.012,.35,.015),dark)
-            for z,angle in [(.77,-.54),(-1.15,.48)]:
-                pillar=box('Sloping window pillar',(x*.91,1.18,z),(.07,.57,.065),paint,.018)
-                pillar.rotation_euler.x=angle
-        for x in [-.56,.56]:
-            box('LED daytime running light',(x,.70,length*.489),(.44,.035,.035),lamp,.014)
-            box('Rear LED signature',(x,.75,-length*.481),(.46,.035,.035),tail,.012)
-        for x in [-.28,-.14,0,.14,.28]:box('Grille vertical fin',(x,.56,length/2+.04),(.018,.14,.025),chrome,.006)
-        box('Front lower intake',(0,.35,length/2+.035),(1.1,.10,.04),dark,.025)
-        box('Trunk lip',(0,1.01,-1.7),(1.35,.055,.13),paint,.025)
-        box('Rear diffuser',(0,.33,-length/2-.02),(1.1,.15,.12),dark,.03)
-        for x in [-.62,.62]:
-            box('Exhaust surround',(x,.35,-length/2-.08),(.22,.09,.13),chrome,.03)
-        # Tire shoulders, brake discs, alloy spokes and hubs replace flat wheel faces.
-        for x in [-width/2,width/2]:
-            for z in [-length*.30,length*.30]:
-                side=1 if x>0 else -1
-                bpy.ops.mesh.primitive_torus_add(major_radius=.285,minor_radius=.065,major_segments=32,minor_segments=8,
-                    location=coord(x+side*.10,.37,z),rotation=(0,math.pi/2,0))
-                bpy.context.object.name='Rounded tire shoulder';bpy.context.object.data.materials.append(dark)
-                for p in bpy.context.object.data.polygons:p.use_smooth=True
-                for k in range(5):
-                    a=k*math.tau/5
-                    spoke=box('Forged alloy spoke',(x+side*.135,.37+math.cos(a)*.11,z+math.sin(a)*.11),(.025,.22,.04),chrome,.01)
-                    spoke.rotation_euler.x=a
-                box('Wheel centre',(x+side*.15,.37,z),(.035,.09,.09),chrome,.025)
     merge_materials()
 
 for kind in ['sedan','suv','hatchback']:
